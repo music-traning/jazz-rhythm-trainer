@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JAZZ RHYTHM TRAINER v5.0 GOD TIER</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+        :root {
+            --bg: #0d0d10; --panel: #1a1a20; --text: #e0e0e0;
+            --accent: #4cc9f0; --accent-dim: rgba(76, 201, 240, 0.2);
+            --p1: #4cc9f0; --p2: #4895ef; --p3: #f72585; --p4: #b5179e; --p5: #ffd60a;
+        }
+
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Noto Sans JP', sans-serif; color: var(--text); touch-action: none; height: 100vh; }
+        
+        /* UTILS */
+        body.playing .hide-on-play { display: none !important; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        /* HEADER */
+        header {
+            position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+            background: rgba(26, 26, 32, 0.95); backdrop-filter: blur(5px);
+            border-bottom: 1px solid #333; z-index: 110;
+            display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-sizing: border-box;
+        }
+        .brand { font-family: 'Roboto Mono'; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+
+        /* CANVAS & GAME */
+        #visualizer-area { position: relative; width: 100%; height: 100%; overflow: hidden; background: radial-gradient(circle at 50% 50%, #1f1f25 0%, #000 100%); }
+        canvas#gameCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* FOOTER */
+        #app-footer {
+            position: absolute; bottom: 10px; width: 100%; text-align: center;
+            font-family: 'Roboto Mono'; font-size: 0.7rem; color: #555; z-index: 150; pointer-events: none;
+        }
+        #app-footer a { color: #777; text-decoration: none; pointer-events: auto; }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92); backdrop-filter: blur(8px);
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-box {
+            background: var(--panel); width: 95%; max-width: 500px; max-height: 85vh;
+            border-left: 4px solid var(--accent); border-radius: 4px;
+            padding: 20px; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: flex; flex-direction: column;
+        }
+        .modal-box h2 { margin-top: 0; font-family: 'Roboto Mono'; color: var(--accent); border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.2rem; }
+        .modal-box p { line-height: 1.6; color: #ccc; font-size: 0.85rem; margin-bottom: 15px; }
+
+        /* TITLE SCREEN */
+        #title-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 200;
+            background: radial-gradient(circle, #1a1a2e 0%, #000000 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s;
+        }
+        .title-logo { font-family: 'Roboto Mono'; font-size: 3rem; font-weight: 900; color: var(--accent); text-shadow: 0 0 20px var(--accent); margin-bottom: 5px; text-align: center; line-height: 1; }
+        .title-sub { font-family: 'Roboto Mono'; color: #666; margin-bottom: 40px; letter-spacing: 4px; font-size: 0.9rem; }
+        .lang-btn {
+            background: transparent; border: 1px solid #555; color: #fff; padding: 15px 40px; margin: 8px;
+            font-family: 'Roboto Mono'; font-size: 1rem; cursor: pointer; border-radius: 4px; transition: 0.2s; width: 200px;
+        }
+        .lang-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
+
+        /* LESSON LIST */
+        #lesson-list { flex: 1; overflow-y: auto; padding-right: 5px; }
+        .phase-header { margin-top: 20px; margin-bottom: 5px; font-size: 0.75rem; color: #888; border-bottom: 1px solid #333; padding-bottom: 2px; font-family: 'Roboto Mono'; font-weight: bold; text-transform: uppercase; }
+        .lesson-card {
+            background: #25252e; margin-bottom: 8px; padding: 12px; border-radius: 6px;
+            border: 1px solid #333; transition: 0.2s; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+        .lesson-card:hover { border-color: var(--accent); background: #2a2a35; }
+        .lesson-card.locked { opacity: 0.3; pointer-events: none; filter: grayscale(1); border-style: dashed; }
+        
+        /* Phase Colors */
+        .p1 .lvl-badge { color: var(--p1); border-color: var(--p1); }
+        .p2 .lvl-badge { color: var(--p2); border-color: var(--p2); }
+        .p3 .lvl-badge { color: var(--p3); border-color: var(--p3); }
+        .p4 .lvl-badge { color: var(--p4); border-color: var(--p4); }
+        .p5 .lvl-badge { color: var(--p5); border-color: var(--p5); box-shadow: 0 0 5px var(--p5); }
+
+        .lvl-badge { font-size: 0.75rem; padding: 2px 8px; border: 1px solid #555; border-radius: 4px; background: #1a1a1a; margin-right: 12px; font-family: 'Roboto Mono'; min-width: 40px; text-align: center; }
+        .status-badge { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; background: #111; color: #555; font-weight: bold; }
+        .status-badge.passed { color: var(--accent); background: var(--accent-dim); }
+
+        /* UI ELEMENTS */
+        .btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 6px 14px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 0.85rem; transition: 0.2s; }
+        .btn:hover { background: var(--accent); color: #000; }
+        .btn-main { background: var(--accent); color: #121214; width: 100%; padding: 12px; font-size: 1rem; margin-top: 10px; }
+        .btn-demo { background: transparent; border: 1px solid #aaa; color: #aaa; width: 100%; padding: 10px; margin-top: 5px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-demo:hover { background: #333; color: #fff; border-color: #fff; }
+        .btn-demo.playing { background: #f05; color: #fff; border-color: #f05; animation: pulse 1s infinite; }
+        .btn-reset { display: block; width: 100%; background: #200; color: #f55; border: 1px solid #400; padding: 10px; margin-top: 20px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        /* HUD & FEEDBACK */
+        #countdown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 50; pointer-events: none; }
+        #countdown-text { font-size: 8rem; font-weight: 900; color: #fff; text-shadow: 0 0 30px var(--accent); font-family: 'Roboto Mono'; opacity: 0; }
+        .count-anim { animation: countPop 0.4s ease-out forwards; }
+        @keyframes countPop { 0% { opacity:0; transform:scale(2); } 50% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(0.8); } }
+        
+        #hud { position: absolute; top: 70px; right: 20px; text-align: right; pointer-events: none; }
+        #feedback-float { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: 900; opacity: 0; pointer-events: none; text-shadow: 0 0 10px #000; z-index: 20; white-space: nowrap; }
+        
+        .big-grade { font-size: 5rem; font-weight: 900; margin: 10px 0; font-family: 'Roboto Mono'; line-height: 1; }
+        .grade-S { color: var(--p5); text-shadow: 0 0 20px var(--p5); }
+        .grade-A { color: var(--accent); }
+        .grade-B { color: #fff; }
+        .grade-F { color: #555; }
+
+        /* STATS */
+        #chart-container { width: 100%; height: 220px; margin-bottom: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        .briefing-tag { display: inline-block; background: #333; color: #aaa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-bottom: 5px; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="title-screen">
+        <div class="title-logo">JAZZ RHYTHM<br>TRAINER</div>
+        <div class="title-sub">GOD TIER EDITION (50 LEVELS)</div>
+        <button class="lang-btn" onclick="setLang('ja')">🇯🇵 START (JP)</button>
+        <button class="lang-btn" onclick="setLang('en')">🇺🇸 START (EN)</button>
+        <div style="position:absolute; bottom:20px; font-size:0.7rem; color:#666; font-family:'Roboto Mono';">
+            &copy; 2026 buro | <a href="https://note.com/jazzy_begin" target="_blank" style="color:#888;">note.com/jazzy_begin</a>
+        </div>
+    </div>
+
+    <header class="hide-on-play" style="display:none;" id="main-header">
+        <div class="brand">JRT <span style="font-size:0.6em; color:#666;">v5.0</span></div>
+        <div>
+            <button class="btn" id="btn-stats">📊 STATS</button>
+            <button class="btn" id="btn-help">?</button>
+        </div>
+    </header>
+
+    <div id="visualizer-area">
+        <canvas id="gameCanvas"></canvas>
+        <div id="countdown-overlay"><div id="countdown-text"></div></div>
+        <div id="feedback-float"></div>
+        <div id="hud">
+            <div id="hud-status" style="font-family:'Roboto Mono'; color:var(--accent); font-size:0.8rem;">WAITING...</div>
+            <div id="hud-time" style="font-size:1.5rem; font-weight:bold; font-family:'Roboto Mono';">00:00</div>
+        </div>
+    </div>
+
+    <div id="app-footer" class="hide-on-play" style="display:none;">
+        &copy; 2026 buro | <a href="https://note.com/jazzy_begin" target="_blank">note.com/jazzy_begin</a>
+    </div>
+
+    <div id="modal-menu" class="modal-overlay">
+        <div class="modal-box">
+            <h2 id="menu-title">CURRICULUM</h2>
+            <p id="menu-desc">...</p>
+            <div id="lesson-list"></div>
+            <button class="btn-reset" id="btn-reset-data">🗑 RESET DATA</button>
+        </div>
+    </div>
+
+    <div id="modal-briefing" class="modal-overlay">
+        <div class="modal-box">
+            <h2 id="brief-title">LESSON X</h2>
+            <div>
+                <span class="briefing-tag">BPM: <span id="brief-bpm">0</span></span>
+                <span class="briefing-tag">SWING: <span id="brief-swing">0%</span></span>
+            </div>
+            <div style="margin-top:15px; color:#aaa; font-size:0.8rem;">OBJECTIVE</div>
+            <p id="brief-obj" style="font-weight:bold; color:#fff;">...</p>
+            <div style="color:#aaa; font-size:0.8rem;">ADVICE</div>
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:4px; margin-bottom:15px; border-left:2px solid #fff;">
+                <p id="brief-advice" style="margin:0; font-size:0.9rem;">...</p>
+            </div>
+            <button class="btn btn-demo" id="btn-play-demo">🔊 DEMO</button>
+            <button class="btn btn-main" id="btn-start-session">START</button>
+            <button class="btn" style="background:none; border:none; color:#666; width:100%; margin-top:5px;" id="btn-cancel-brief">CANCEL</button>
+        </div>
+    </div>
+
+    <div id="modal-result" class="modal-overlay">
+        <div class="modal-box" style="text-align:center;">
+            <div style="font-size:0.8rem; color:#888; letter-spacing:2px;">RESULT</div>
+            <div class="big-grade" id="res-grade">-</div>
+            <div id="res-msg" style="font-weight:bold; margin-bottom:20px; color:#fff;">-</div>
+            <div style="background:#222; padding:15px; border-radius:8px; text-align:left; margin-bottom:15px; font-family:'Roboto Mono';">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding-bottom:5px;">
+                    <span>TIMING</span><span id="res-bias">0ms</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding-top:5px;">
+                    <span>STABILITY</span><span id="res-sd">±0ms</span>
+                </div>
+            </div>
+            <button class="btn btn-main" id="btn-next">NEXT</button>
+        </div>
+    </div>
+
+    <div id="modal-stats" class="modal-overlay">
+        <div class="modal-box">
+            <h2 id="stats-title">STATS</h2>
+            <div id="chart-container"><canvas id="statsChart"></canvas></div>
+            <p style="font-size:0.75rem; color:#888;">(+) Late / (-) Fast</p>
+            <button class="btn btn-main" id="close-stats">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="modal-help" class="modal-overlay">
+        <div class="modal-box">
+            <h2 id="help-title">HELP</h2>
+            <div id="help-content"></div>
+            <button class="btn btn-main" id="close-help">CLOSE</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. LANGUAGE & TEXT ---
+        let lang = 'ja';
+        const TEXT = {
+            ja: {
+                menuTitle: "カリキュラム (50段階)",
+                menuDesc: "Lv.1-20は基礎（Straight）、Lv.21からジャズ（Swing）です。焦らず進みましょう。",
+                reset: "🗑 セーブデータを消去",
+                demo: "🔊 お手本 (DEMO)", stopDemo: "⏹ 停止",
+                start: "スタート", cancel: "もどる", next: "次のレッスン", retry: "もう一度", menu: "メニューへ",
+                statsTitle: "リズム分析",
+                helpTitle: "操作説明",
+                helpContent: `
+                    <p><strong>★ 基本操作</strong><br>
+                    <span style="color:#f72585;">● 上 (Pink)</span>: [↑]キー or [X] or 上半分タップ<br>
+                    <span style="color:#4cc9f0;">● 下 (Blue)</span>: [↓]キー or [Z] or 下半分タップ</p>
+                    <hr style="border-color:#333;">
+                    <p><strong>1. 円運動</strong><br>リズムを「点」ではなく「円の周期」で捉えます。</p>
+                    <p><strong>2. Gap (無音)</strong><br>Lv.30以降、ガイド音が消える「Gap」が登場します。</p>
+                    <p><strong>3. 構成</strong><br>Lv.1-20: Straight (均等)<br>Lv.21-50: Swing (3連符)</p>
+                `,
+                resetConfirm: "記録を全消去しますか？",
+                phases: [
+                    "PHASE 1: 基礎 (Straight Basics)", 
+                    "PHASE 2: グルーヴ (Straight Groove)", 
+                    "PHASE 3: スイング (Swing Entry)", 
+                    "PHASE 4: テクニック (Advanced)", 
+                    "PHASE 5: 神の領域 (GOD TIER)"
+                ]
+            },
+            en: {
+                menuTitle: "CURRICULUM (50 STEPS)",
+                menuDesc: "Lv.1-20 Straight. Lv.21+ Swing. Take your time.",
+                reset: "🗑 RESET SAVE DATA",
+                demo: "🔊 PLAY DEMO", stopDemo: "⏹ STOP",
+                start: "START", cancel: "BACK", next: "NEXT LESSON", retry: "RETRY", menu: "MENU",
+                statsTitle: "STATISTICS",
+                helpTitle: "MANUAL",
+                helpContent: `
+                    <p><strong>★ CONTROLS</strong><br>
+                    <span style="color:#f72585;">● High</span>: [UP] / [X] / Top Screen<br>
+                    <span style="color:#4cc9f0;">● Low</span>: [DOWN] / [Z] / Bottom Screen</p>
+                    <hr style="border-color:#333;">
+                    <p><strong>Structure</strong><br>Lv.1-20: Straight (Even)<br>Lv.21-50: Swing (Triplet)</p>
+                `,
+                resetConfirm: "Delete all progress?",
+                phases: [
+                    "PHASE 1: BASICS (STRAIGHT)", 
+                    "PHASE 2: GROOVE (STRAIGHT)", 
+                    "PHASE 3: SWING ENTRY", 
+                    "PHASE 4: ADVANCED", 
+                    "PHASE 5: GOD TIER"
+                ]
+            }
+        };
+
+        // --- 2. LESSON DATA (50 LEVELS) ---
+        const LESSON_DATA = [
+            // --- PHASE 1: BASICS (Lv.1-10) ---
+            { id: 1, p:1, bpm: 60, r:0, s:0.18, d:8,  snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"鼓動 60",s:"4分音符",o:"リズムの原点。",a:"ゆっくり待つ練習。円を描くように。"}, en:{t:"Pulse 60",s:"Quarter",o:"The Origin.",a:"Wait for it. Draw a circle."} },
+            { id: 2, p:1, bpm: 70, r:0, s:0.17, d:8,  snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"鼓動 70",s:"4分音符",o:"少し歩く速度。",a:"クリックと完全に重なる感覚を。"}, en:{t:"Pulse 70",s:"Quarter",o:"Walking pace.",a:"Overlap perfectly."} },
+            { id: 3, p:1, bpm: 80, r:0, s:0.16, d:8,  snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"鼓動 80",s:"4分音符",o:"標準テンポ。",a:"リラックスして。肩の力を抜いて。"}, en:{t:"Pulse 80",s:"Quarter",o:"Standard.",a:"Relax your shoulders."} },
+            { id: 4, p:1, bpm: 90, r:0, s:0.15, d:8,  snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"鼓動 90",s:"4分音符",o:"少し前進する感覚。",a:"走らないように注意。"}, en:{t:"Pulse 90",s:"Quarter",o:"Moving forward.",a:"Don't rush."} },
+            { id: 5, p:1, bpm: 60, r:0, s:0.15, d:8,  snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"分割 60",s:"8分音符",o:"音を半分に割る。",a:"「タカタカ」と均等に。跳ねません。"}, en:{t:"Split 60",s:"8th Note",o:"Even split.",a:"Straight 'Ta-Ka'. No bounce."} },
+            { id: 6, p:1, bpm: 70, r:0, s:0.14, d:12, snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"分割 70",s:"8分音符",o:"安定した連打。",a:"手首を柔らかく使って。"}, en:{t:"Split 70",s:"8th Note",o:"Steady flow.",a:"Soft wrists."} },
+            { id: 7, p:1, bpm: 80, r:0, s:0.14, d:12, snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"分割 80",s:"8分音符",o:"8ビートの基礎。",a:"アップストローク（上げる動作）を意識。"}, en:{t:"Split 80",s:"8th Note",o:"8-beat base.",a:"Focus on up-stroke."} },
+            { id: 8, p:1, bpm: 60, r:0, s:0.14, d:8,  snd:'click-4', pat:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], ja:{t:"空間 60",s:"2分音符",o:"待つ勇気。",a:"音の長さ（余韻）を感じてください。"}, en:{t:"Space 60",s:"Half Note",o:"Wait.",a:"Feel the sustain."} },
+            { id: 9, p:1, bpm: 60, r:0, s:0.13, d:8,  snd:'click-up-str', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 60",s:"裏打ち",o:"「ン・タ」を感じる。",a:"休符を演奏するつもりで。"}, en:{t:"Upbeat 60",s:"Off-beat",o:"Feel the 'And'.",a:"Play the rest."} },
+            { id: 10, p:1, bpm: 80, r:0, s:0.13, d:12, snd:'click-gap-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"P1修了検定",s:"Gap 4",o:"ガイドが消えます。",a:"心のメトロノームを信じて。"}, en:{t:"P1 Exam",s:"Gap 4",o:"Guide vanishes.",a:"Trust your inner clock."} },
+
+            // --- PHASE 2: GROOVE (Lv.11-20) ---
+            { id: 11, p:2, bpm: 80, r:0, s:0.12, d:16, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Backbeat 80",s:"2拍4拍",o:"ロックの基本。",a:"クリックのない1・3拍を感じて。"}, en:{t:"Backbeat 80",s:"2 & 4",o:"Rock basic.",a:"Feel the 1 & 3."} },
+            { id: 12, p:2, bpm: 100,r:0, s:0.12, d:16, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Backbeat 100",s:"2拍4拍",o:"テンポアップ。",a:"体が動いてきましたか？"}, en:{t:"Backbeat 100",s:"2 & 4",o:"Tempo up.",a:"Move your body."} },
+            { id: 13, p:2, bpm: 70, r:0, s:0.12, d:12, snd:'click-up-str', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 70",s:"裏打ち",o:"粘り強く待つ。",a:"早押し厳禁。ギリギリまで待って。"}, en:{t:"Upbeat 70",s:"Off-beat",o:"Wait for it.",a:"Don't rush."} },
+            { id: 14, p:2, bpm: 90, r:0, s:0.11, d:12, snd:'click-up-str', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 90",s:"裏打ち",o:"速い裏拍。",a:"突っ込みやすいです。冷静に。"}, en:{t:"Upbeat 90",s:"Off-beat",o:"Fast upbeat.",a:"Stay cool."} },
+            { id: 15, p:2, bpm: 80, r:0, s:0.11, d:16, snd:'click-4', pat:[1,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0], ja:{t:"食うリズム A",s:"シンコペーション",o:"リズムの強調。",a:"付点音符の長さを正確に。"}, en:{t:"Syncopation A",s:"Syncopation",o:"Accent.",a:"Keep lengths accurate."} },
+            { id: 16, p:2, bpm: 100,r:0, s:0.10, d:16, snd:'click-4', pat:[1,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0], ja:{t:"食うリズム B",s:"シンコペーション",o:"躍動感。",a:"前のめりにならないように。"}, en:{t:"Syncopation B",s:"Syncopation",o:"Drive.",a:"Don't lean forward."} },
+            { id: 17, p:2, bpm: 110,r:0, s:0.10, d:24, snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"鼓動 110",s:"4分音符",o:"速いパルス。",a:"クリックを「消す」感覚で叩く。"}, en:{t:"Pulse 110",s:"Quarter",o:"Fast pulse.",a:"Bury the click."} },
+            { id: 18, p:2, bpm: 120,r:0, s:0.09, d:24, snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"疾走 120",s:"8分音符",o:"8ビートの完成形。",a:"力まないこと。脱力が鍵です。"}, en:{t:"Drive 120",s:"8th Note",o:"Full 8-beat.",a:"Relaxation is key."} },
+            { id: 19, p:2, bpm: 100,r:0, s:0.09, d:32, snd:'click-gap-4', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"Gap 8th",s:"4小節消失",o:"長い無音区間。",a:"自分のリズムを信じ抜くこと。"}, en:{t:"Gap 8th",s:"4-Bar Gap",o:"Long silence.",a:"Trust your groove."} },
+            { id: 20, p:2, bpm: 110,r:0, s:0.08, d:32, snd:'click-gap-4', pat:[1,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0], ja:{t:"P2修了検定",s:"総合",o:"Straightの卒業。",a:"これができれば脱初心者です。"}, en:{t:"P2 Exam",s:"Review",o:"Graduation.",a:"You are ready."} },
+
+            // --- PHASE 3: SWING ENTRY (Lv.21-30) ---
+            { id: 21, p:3, bpm: 60, r:0.33, s:0.12, d:12, snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Swing 60",s:"3連フィール",o:"【重要】ここから跳ねます。",a:"「タッ・タ・タッ・タ」。円が歪みます。"}, en:{t:"Swing 60",s:"Triplet",o:"Enter SWING.",a:"'Da... da Da... da'."} },
+            { id: 22, p:3, bpm: 80, r:0.33, s:0.12, d:12, snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Swing 80",s:"3連フィール",o:"シャッフルの基本。",a:"カクカクしない。滑らかに。"}, en:{t:"Swing 80",s:"Shuffle",o:"Smoothly.",a:"Don't be robotic."} },
+            { id: 23, p:3, bpm: 70, r:0.33, s:0.11, d:16, snd:'click-4', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Swing 8th",s:"レガート",o:"「チーチッキ」",a:"裏拍が遅く来ます。粘って。"}, en:{t:"Swing 8th",s:"Legato",o:"Spang-a-lang.",a:"Upbeat comes late."} },
+            { id: 24, p:3, bpm: 90, r:0.33, s:0.11, d:16, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Jazz Ride",s:"ドラム同期",o:"シンバルと合わせる。",a:"ライドシンバルと一体化して。"}, en:{t:"Jazz Ride",s:"Sync",o:"Lock with Ride.",a:"Become the cymbal."} },
+            { id: 25, p:3, bpm: 80, r:0.33, s:0.10, d:16, snd:'click-up-sw', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 Swing",s:"裏打ち",o:"3連の3つ目。",a:"これが難しい！一番後ろを感じて。"}, en:{t:"Upbeat Sw",s:"Off-beat",o:"3rd triplet.",a:"Very late upbeat."} },
+            { id: 26, p:3, bpm: 100,r:0.33, s:0.10, d:16, snd:'click-24', pat:[1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0], ja:{t:"Charleston",s:"付点リズム",o:"チャールストン。",a:"「ダッ・・・(ウ)タッ」"}, en:{t:"Charleston",s:"Dotted",o:"Classic Jazz.",a:"'Da... (uh) Da'."} },
+            { id: 27, p:3, bpm: 110,r:0.33, s:0.09, d:24, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Walk 110",s:"4ビート",o:"ベースライン。",a:"歩くように。止まらないで。"}, en:{t:"Walk 110",s:"4-beat",o:"Walking Bass.",a:"Keep walking."} },
+            { id: 28, p:3, bpm: 100,r:0.33, s:0.09, d:24, snd:'click-24', pat:[1,0,0,1,-1,1,0,0,1,0,0,1,0,0,1,0], ja:{t:"Syncopation S",s:"食うリズム",o:"スイングでの食い。",a:"重心を低く保ってください。"}, en:{t:"Synco Sw",s:"Syncopation",o:"Low gravity.",a:"Stay grounded."} },
+            { id: 29, p:3, bpm: 120,r:0.33, s:0.08, d:32, snd:'click-gap-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Gap Swing",s:"4小節消失",o:"スイングのキープ。",a:"跳ねる感覚を維持できますか？"}, en:{t:"Gap Swing",s:"Gap",o:"Keep bouncing.",a:"Don't lose it."} },
+            { id: 30, p:3, bpm: 120,r:0.33, s:0.08, d:32, snd:'click-up-sw', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"P3修了検定",s:"高速裏拍",o:"中級者の壁。",a:"ここを越えれば上級者です。"}, en:{t:"P3 Exam",s:"Fast Up",o:"The Wall.",a:"Almost advanced."} },
+
+            // --- PHASE 4: ADVANCED (Lv.31-40) ---
+            { id: 31, p:4, bpm: 130,r:0.33, s:0.07, d:32, snd:'click-24', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Med Swing",s:"BPM 130",o:"速度への適応。",a:"指先だけでコントロールします。"}, en:{t:"Med Swing",s:"130",o:"Fingertips.",a:"Control clearly."} },
+            { id: 32, p:4, bpm: 140,r:0.33, s:0.07, d:32, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Fast Walk",s:"BPM 140",o:"アップテンポ。",a:"思考停止。反応速度の世界へ。"}, en:{t:"Fast Walk",s:"140",o:"Reaction.",a:"Don't think."} },
+            { id: 33, p:4, bpm: 120,r:0.33, s:0.07, d:32, snd:'gap-2', pat:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0], ja:{t:"Poly 3:4",s:"ポリリズム",o:"4拍子の中の3拍子。",a:"小節線を見失わないで。"}, en:{t:"Poly 3:4",s:"3 over 4",o:"Polyrhythm.",a:"Watch the bar line."} },
+            { id: 34, p:4, bpm: 150,r:0.33, s:0.06, d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Bebop Entry",s:"BPM 150",o:"ビバップの入り口。",a:"ライドシンバルを追い越さないで。"}, en:{t:"Bebop",s:"150",o:"Entry.",a:"Don't rush the ride."} },
+            { id: 35, p:4, bpm: 130,r:0.33, s:0.06, d:40, snd:'gap-4', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"Ghost Upbeat",s:"裏拍×Gap",o:"無音での裏打ち。",a:"誰も助けてくれません。"}, en:{t:"Ghost Up",s:"Silent",o:"No help.",a:"You are alone."} },
+            { id: 36, p:4, bpm: 160,r:0.33, s:0.06, d:32, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Bebop Fast",s:"BPM 160",o:"高速4ビート。",a:"リラックス。呼吸を忘れずに。"}, en:{t:"Bebop Fast",s:"160",o:"Breathe.",a:"Stay relaxed."} },
+            { id: 37, p:4, bpm: 140,r:0.33, s:0.05, d:40, snd:'click-24', pat:[1,0,0,1,-1,1,0,0,1,0,0,1,0,0,1,0], ja:{t:"Complex Sw",s:"複合リズム",o:"複雑なシンコペーション。",a:"パターンを歌ってください。"}, en:{t:"Complex",s:"Sing it",o:"Sing the rhythm.",a:"Complex pattern."} },
+            { id: 38, p:4, bpm: 170,r:0.33, s:0.05, d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Burnout 170",s:"BPM 170",o:"限界への挑戦。",a:"腕ではなく、指で叩く。"}, en:{t:"Burnout",s:"170",o:"Use fingers.",a:"Not arms."} },
+            { id: 39, p:4, bpm: 150,r:0.33, s:0.05, d:48, snd:'gap-4', pat:[1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0], ja:{t:"Chaos Gap",s:"ランダム消失",o:"不規則な無音。",a:"パルスは絶対です。"}, en:{t:"Chaos Gap",s:"Random",o:"Pulse is absolute.",a:"Don't waver."} },
+            { id: 40, p:4, bpm: 160,r:0.33, s:0.045,d:48, snd:'click-up-sw', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"P4修了検定",s:"極限裏拍",o:"BPM160の裏。",a:"人間の限界に近づいています。"}, en:{t:"P4 Exam",s:"Max Up",o:"Human limit.",a:"Push it."} },
+
+            // --- PHASE 5: GOD TIER (Lv.41-50) ---
+            { id: 41, p:5, bpm: 180,r:0.33, s:0.045,d:32, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"SONIC 180",s:"BPM 180",o:"音速の世界。",a:"考えるな、感じろ。"}, en:{t:"SONIC 180",s:"180",o:"Don't think.",a:"Feel."} },
+            { id: 42, p:5, bpm: 140,r:0.33, s:0.045,d:48, snd:'gap-4', pat:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0], ja:{t:"Poly Gap",s:"ポリ×Gap",o:"無音でのポリリズム。",a:"小節感覚の極地。"}, en:{t:"Poly Gap",s:"Silent Poly",o:"Bar sense.",a:"Extreme."} },
+            { id: 43, p:5, bpm: 190,r:0.33, s:0.04, d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Bebop 190",s:"BPM 190",o:"プロ領域。",a:"もはやスポーツです。"}, en:{t:"Bebop 190",s:"190",o:"Pro level.",a:"It's a sport."} },
+            { id: 44, p:5, bpm: 150,r:0.33, s:0.04, d:64, snd:'gap-2', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"Silence",s:"2小節消失",o:"完全自律。",a:"クリックは不要ですか？"}, en:{t:"Silence",s:"No Click",o:"Independence.",a:"No click needed."} },
+            { id: 45, p:5, bpm: 200,r:0.33, s:0.04, d:40, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"SUPER 200",s:"BPM 200",o:"未知の領域。",a:"脱力・脱力・脱力。"}, en:{t:"SUPER 200",s:"200",o:"Unknown.",a:"Relax x3."} },
+            { id: 46, p:5, bpm: 160,r:0.33, s:0.035,d:48, snd:'click-up-sw', pat:[1,0,0,1,-1,1,0,0,1,0,1,0,0,1,0,-1], ja:{t:"Complex II",s:"複合連打",o:"難解な譜面。",a:"初見殺し。"}, en:{t:"Complex II",s:"Hard",o:"Puzzle.",a:"Tricky."} },
+            { id: 47, p:5, bpm: 210,r:0.33, s:0.035,d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"HYPER 210",s:"BPM 210",o:"神速。",a:"残像が見えます。"}, en:{t:"HYPER 210",s:"210",o:"Godspeed.",a:"Afterimage."} },
+            { id: 48, p:5, bpm: 170,r:0.33, s:0.03, d:64, snd:'gap-4', pat:[1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1], ja:{t:"The Void",s:"虚無",o:"4小節無音の連打。",a:"自分自身との戦い。"}, en:{t:"The Void",s:"Empty",o:"Self battle.",a:"Fight yourself."} },
+            { id: 49, p:5, bpm: 220,r:0.33, s:0.03, d:40, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"OMEGA 220",s:"BPM 220",o:"最終試験。",a:"全てを出し切ってください。"}, en:{t:"OMEGA 220",s:"220",o:"Final Exam.",a:"All out."} },
+            { id: 50, p:5, bpm: 180,r:0.33, s:0.03, d:64, snd:'drum-only', pat:[1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1], ja:{t:"THE LEGEND",s:"完 全 制 覇",o:"免許皆伝。",a:"Enjoy Music."}, en:{t:"THE LEGEND",s:"GOD",o:"Mastery.",a:"Enjoy Music."} }
+        ];
+
+        // --- 3. SYSTEM VARIABLES ---
+        let audioCtx, noiseBuffer;
+        let isPlaying = false, isDemo = false, chartInstance = null;
+        let currentLesson = null;
+        let nextNoteTime = 0, noteIndex = 0;
+        let notes = [], hitHistory = [];
+        let progress = { passed: [], stats: {} };
+        let animationId;
+        const SAVE_KEY = 'jrt_save_v5';
+
+        // --- 4. CORE FUNCTIONS ---
+        function setLang(l) {
+            lang = l;
+            document.getElementById('title-screen').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('title-screen').style.display = 'none';
+                document.getElementById('main-header').style.display = 'flex';
+                document.getElementById('app-footer').style.display = 'block';
+                renderMenu();
+            }, 500);
+        }
+
+        function updateTexts() {
+            const t = TEXT[lang];
+            document.getElementById('menu-title').innerText = t.menuTitle;
+            document.getElementById('menu-desc').innerText = t.menuDesc;
+            document.getElementById('btn-reset-data').innerText = t.reset;
+            document.getElementById('btn-play-demo').innerHTML = t.demo;
+            document.getElementById('btn-start-session').innerText = t.start;
+            document.getElementById('btn-cancel-brief').innerText = t.cancel;
+            document.getElementById('stats-title').innerText = t.statsTitle;
+            document.getElementById('help-title').innerText = t.helpTitle;
+            document.getElementById('help-content').innerHTML = t.helpContent;
+            document.getElementById('close-help').innerText = t.cancel;
+            document.getElementById('close-stats').innerText = t.cancel;
+        }
+
+        function loadSave() {
+            const d = localStorage.getItem(SAVE_KEY);
+            if(d) progress = JSON.parse(d);
+            if(!progress.stats) progress.stats = {};
+        }
+        function saveProgress() { localStorage.setItem(SAVE_KEY, JSON.stringify(progress)); }
+        function resetSave() {
+            if(confirm(TEXT[lang].resetConfirm)) {
+                localStorage.removeItem(SAVE_KEY);
+                progress = { passed: [], stats: {} };
+                renderMenu();
+            }
+        }
+
+        // --- 5. AUDIO ENGINE (NO CHANGES - WORKS PERFECTLY) ---
+        function initAudio() {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            if(!noiseBuffer) {
+                const b = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+                const d = b.getChannelData(0);
+                for(let i=0; i<d.length; i++) d[i] = Math.random() * 2 - 1;
+                noiseBuffer = b;
+            }
+        }
+
+        function playSound(type, time, vol=1.0) {
+            if(!audioCtx) return;
+            const t = Math.max(audioCtx.currentTime, time);
+            const master = audioCtx.createGain(); master.gain.value=1.0; master.connect(audioCtx.destination);
+
+            if(type === 'click' || type === 'count') {
+                const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                osc.frequency.setValueAtTime(type==='count'?1000:800, t);
+                osc.frequency.exponentialRampToValueAtTime(100, t+0.1);
+                g.gain.setValueAtTime(0.7*vol, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.05);
+                osc.connect(g); g.connect(master); osc.start(t); osc.stop(t+0.1);
+            } else if(type === 'ride') {
+                [320, 460, 680, 940].forEach((f,i)=>{
+                    const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+                    o.type='square'; o.frequency.value=f; o.detune.value=Math.random()*20-10;
+                    g.gain.setValueAtTime((0.03/(i+1))*vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+                    const h=audioCtx.createBiquadFilter(); h.type='highpass'; h.frequency.value=3000;
+                    o.connect(g); g.connect(h); h.connect(master); o.start(t); o.stop(t+0.5);
+                });
+                const n=audioCtx.createBufferSource(); n.buffer=noiseBuffer;
+                const ng=audioCtx.createGain(); const nf=audioCtx.createBiquadFilter();
+                nf.type='bandpass'; nf.frequency.value=8000;
+                ng.gain.setValueAtTime(0.3*vol,t); ng.gain.exponentialRampToValueAtTime(0.001,t+(vol>0.8?0.8:0.4));
+                n.connect(nf); nf.connect(ng); ng.connect(master); n.start(t); n.stop(t+1.0);
+            } else if(type === 'hihat') {
+                const n=audioCtx.createBufferSource(); n.buffer=noiseBuffer;
+                const nf=audioCtx.createBiquadFilter(); nf.type='highpass'; nf.frequency.value=7000;
+                const ng=audioCtx.createGain(); ng.gain.setValueAtTime(0.6*vol,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+                n.connect(nf); nf.connect(ng); ng.connect(master); n.start(t); n.stop(t+0.1);
+            } else if(type === 'kick') {
+                const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+                o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(50,t+0.15);
+                g.gain.setValueAtTime(0.8*vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+                o.connect(g); g.connect(master); o.start(t); o.stop(t+0.3);
+            } else if(type === 'guide') {
+                const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+                o.type='sine'; o.frequency.value=880; g.gain.setValueAtTime(0.1*vol,t); g.gain.linearRampToValueAtTime(0,t+0.1);
+                o.connect(g); g.connect(master); o.start(t); o.stop(t+0.1);
+            }
+        }
+
+        // --- 6. GAME LOGIC ---
+        function getSwingTime(base, sixteenth, bpm, ratio) {
+            const secPer16 = (60/bpm)/4;
+            const mod = sixteenth % 4;
+            let dr = ratio;
+            if(ratio > 0) dr = 0.25 + (0.12 * Math.max(0, Math.min(1, (300-bpm)/200)));
+            if(mod === 2 || mod === 3) return base + (secPer16 * dr * 1.8);
+            return base;
+        }
+
+        function schedule() {
+            if(!isPlaying) return;
+            const bpm = currentLesson.bpm;
+            const secPer16 = (60/bpm)/4;
+            const total16ths = currentLesson.d * 16;
+            
+            while(nextNoteTime < audioCtx.currentTime + 0.1) {
+                if(isDemo && noteIndex >= 64) { stopDemo(); return; }
+                if(!isDemo && noteIndex >= total16ths) { finishLesson(); return; }
+
+                const bar = Math.floor(noteIndex / 16);
+                const sixteenth = noteIndex % 16;
+                const actualTime = getSwingTime(nextNoteTime, sixteenth, bpm, currentLesson.r);
+                
+                // Click Logic
+                const st = currentLesson.snd;
+                let isGap = false;
+                if(st.includes('gap-4') && (bar+1)%4===0) isGap=true;
+                if(st.includes('gap-2') && bar%4>=2) isGap=true;
+
+                if(!isGap || isDemo) {
+                    let click=false;
+                    if(!isGap) {
+                        if(st==='click-4' && sixteenth%4===0) click=true;
+                        else if(st==='click-8' && sixteenth%2===0) click=true;
+                        else if((st==='click-up-str'||st==='click-up-sw') && sixteenth%4===2) click=true;
+                        else if((st==='click-24'||st.includes('gap')) && (sixteenth===4||sixteenth===12)) click=true;
+                    }
+                    if(click) playSound('click', actualTime, 0.8);
+
+                    // Drum Groove
+                    if(currentLesson.r > 0 && !st.includes('click-up')) {
+                        if(sixteenth===4||sixteenth===12) playSound('hihat', actualTime, 0.7);
+                        if(sixteenth===0||sixteenth===8) playSound('ride', actualTime, 0.7);
+                        if(sixteenth===6||sixteenth===14) playSound('ride', actualTime, 0.85); // Lang
+                        if(sixteenth===0||sixteenth===8) playSound('kick', actualTime, 0.5);
+                    }
+                }
+
+                const pVal = currentLesson.pat[sixteenth];
+                if(pVal !== 0) {
+                    if(isDemo) playSound('guide', actualTime);
+                    notes.push({ time:actualTime, type:pVal, processed:false, angle:(sixteenth/16)*Math.PI*2 - Math.PI/2 });
+                }
+                nextNoteTime += secPer16;
+                noteIndex++;
+            }
+            setTimeout(schedule, 20);
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        function resize() { canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        function draw() {
+            if(!isPlaying && !document.getElementById('countdown-overlay').innerHTML) return;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            const cx=canvas.width/2, cy=canvas.height/2;
+            const r=Math.min(cx,cy)*0.55;
+            const now=audioCtx?audioCtx.currentTime:0;
+
+            // Radar
+            ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.strokeStyle="rgba(255,255,255,0.1)"; ctx.lineWidth=4; ctx.stroke();
+            for(let i=0;i<4;i++){
+                const a=i*(Math.PI/2)-Math.PI/2;
+                ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*(r-10),cy+Math.sin(a)*(r-10));
+                ctx.lineTo(cx+Math.cos(a)*(r+10),cy+Math.sin(a)*(r+10));
+                ctx.strokeStyle=i===0?"var(--accent)":"rgba(255,255,255,0.3)"; ctx.stroke();
+            }
+
+            if(isPlaying) {
+                const ph = ((now*currentLesson.bpm/240)%1)*Math.PI*2 - Math.PI/2;
+                ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ph)*r, cy+Math.sin(ph)*r);
+                ctx.strokeStyle=isDemo?"#aaa":"var(--accent)"; ctx.lineWidth=2; ctx.stroke();
+
+                const linearY = cy+r+80;
+                notes.forEach(n => {
+                    if(n.processed) return;
+                    const diff = n.time - now;
+                    if(!isDemo && diff < -0.15) { n.processed=true; hitHistory.push({diff:null, type:'miss'}); showFeedback("MISS","#555"); }
+                    if(isDemo && diff < -0.05) n.processed=true;
+                    
+                    if(diff>0 && diff<(60/currentLesson.bpm)*4) {
+                        const alpha = 1-(diff/((60/currentLesson.bpm)*4));
+                        ctx.fillStyle=n.type===1?"#f72585":"#4cc9f0"; ctx.globalAlpha=alpha;
+                        ctx.beginPath(); ctx.arc(cx+Math.cos(n.angle)*r, cy+Math.sin(n.angle)*r, 10, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+                    }
+                    const lx = cx+(diff*300);
+                    if(lx>0 && lx<canvas.width) {
+                        ctx.fillStyle=n.type===1?"#f72585":"#4cc9f0";
+                        ctx.beginPath(); ctx.arc(lx, linearY, 12, 0, Math.PI*2); ctx.fill();
+                    }
+                });
+                
+                if(!isDemo) {
+                    ctx.beginPath(); ctx.moveTo(cx,linearY-30); ctx.lineTo(cx,linearY+30); ctx.strokeStyle="#fff"; ctx.stroke();
+                    const el = Math.max(0, now - (notes[0]?notes[0].time:0)+2);
+                    document.getElementById('hud-time').innerText = Math.floor(el/60)+":"+Math.floor(el%60).toString().padStart(2,'0');
+                } else document.getElementById('hud-time').innerText = "DEMO";
+            }
+            animationId = requestAnimationFrame(draw);
+        }
+
+        // --- 7. INPUT & FEEDBACK ---
+        function handleInput(type) {
+            if(!isPlaying || isDemo) return;
+            const now = audioCtx.currentTime;
+            const osc=audioCtx.createOscillator(); const g=audioCtx.createGain();
+            osc.frequency.value=800; g.gain.setValueAtTime(0.1,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.1);
+            osc.connect(g); g.connect(audioCtx.destination); osc.start(now); osc.stop(now+0.1);
+
+            let best=999, target=null;
+            notes.forEach(n => {
+                if(n.processed || n.type !== type) return;
+                const d = Math.abs(n.time - now);
+                if(d < best) { best = d; target = n; }
+            });
+            if(target && best < currentLesson.s) {
+                target.processed = true;
+                const diff = now - target.time;
+                hitHistory.push({diff:diff, type:'hit'});
+                const ms = Math.round(diff*1000);
+                const isP = Math.abs(ms) < 30;
+                showFeedback(isP?"PERFECT":ms+"ms", isP?"#0ff":(ms>0?"#f09":"#ff0"));
+            }
+        }
+
+        function showFeedback(t,c) {
+            const el = document.getElementById('feedback-float');
+            el.innerText = t; el.style.color = c; el.style.opacity = 1;
+            setTimeout(()=>el.style.opacity=0, 200);
+        }
+
+        function finishLesson() {
+            isPlaying = false; document.body.classList.remove('playing');
+            const hits = hitHistory.filter(h=>h.type==='hit');
+            const total = hits.length + hitHistory.filter(h=>h.type==='miss').length;
+            if(total===0) { showResult('F',0,0,"No Input"); return; }
+            
+            const sum = hits.reduce((a,b)=>a+b.diff,0);
+            const mean = sum/hits.length * 1000;
+            const variance = hits.reduce((a,b)=>a+Math.pow((b.diff*1000)-mean,2),0)/hits.length;
+            const sd = Math.sqrt(variance);
+
+            let grade="F", msg="FAILED", passed=false;
+            // Phase-based difficulty
+            const limit = currentLesson.p === 1 ? 60 : (currentLesson.p >= 4 ? 40 : 50);
+
+            if (hits.length > total*0.8 && sd < limit) {
+                if(sd<20 && Math.abs(mean)<20) { grade="S"; msg="GODLIKE"; passed=true; }
+                else if(sd<35) { grade="A"; msg="EXCELLENT"; passed=true; }
+                else { grade="B"; msg="PASSED"; passed=true; }
+            } else msg = "UNSTABLE";
+
+            if(passed) {
+                if(!progress.passed.includes(currentLesson.id)) progress.passed.push(currentLesson.id);
+                progress.stats[currentLesson.id] = { bias: Math.round(mean), sd: Math.round(sd) };
+                saveProgress();
+            }
+            showResult(grade, Math.round(mean), Math.round(sd), msg);
+        }
+
+        // --- 8. UI CONTROLLERS ---
+        function showModal(id) { document.querySelectorAll('.modal-overlay').forEach(e=>e.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function hideModals() { document.querySelectorAll('.modal-overlay').forEach(e=>e.classList.remove('active')); }
+        
+        function prepareLesson(id) {
+            currentLesson = LESSON_DATA.find(l=>l.id===id);
+            const c = currentLesson[lang];
+            document.getElementById('brief-title').innerText = `LESSON ${id} : ${c.t}`;
+            document.getElementById('brief-obj').innerText = c.o;
+            document.getElementById('brief-advice').innerText = c.a;
+            document.getElementById('brief-bpm').innerText = currentLesson.bpm;
+            document.getElementById('brief-swing').innerText = currentLesson.r>0?"ON":"OFF";
+            isDemo=false; isPlaying=false; hideModals(); showModal('modal-briefing');
+        }
+
+        function showResult(g,m,s,msg) {
+            showModal('modal-result');
+            const gel = document.getElementById('res-grade');
+            gel.innerText=g; gel.className=`big-grade grade-${g}`;
+            document.getElementById('res-msg').innerText = msg;
+            document.getElementById('res-bias').innerText = (m>0?"+":"")+m+"ms";
+            document.getElementById('res-sd').innerText = "±"+s+"ms";
+            
+            const btn = document.getElementById('btn-next');
+            if(g==='F') { btn.innerText = TEXT[lang].retry; btn.onclick = () => prepareLesson(currentLesson.id); }
+            else {
+                if(currentLesson.id < 50) { btn.innerText = TEXT[lang].next; btn.onclick = () => prepareLesson(currentLesson.id+1); }
+                else { btn.innerText = TEXT[lang].menu; btn.onclick = renderMenu; }
+            }
+        }
+
+        function renderMenu() {
+            updateTexts();
+            const list = document.getElementById('lesson-list'); list.innerHTML = "";
+            showModal('modal-menu');
+            let lp = 0;
+            LESSON_DATA.forEach((l, i) => {
+                if(l.p !== lp) {
+                    const h = document.createElement('div'); h.className = 'phase-header';
+                    h.innerText = TEXT[lang].phases[l.p-1]; list.appendChild(h); lp = l.p;
+                }
+                const pass = progress.passed.includes(l.id);
+                const lock = (i>0 && !progress.passed.includes(LESSON_DATA[i-1].id));
+                const d = document.createElement('div');
+                d.className = `lesson-card ${lock?'locked':''} p${l.p}`;
+                d.innerHTML = `
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center;">
+                            <span class="lvl-badge">L.${l.id}</span>
+                            <span style="font-weight:bold; color:#fff; font-size:0.9rem;">${l[lang].t}</span>
+                        </div>
+                        <div style="font-size:0.7rem; color:#888; margin-top:4px; margin-left:60px;">${l[lang].s}</div>
+                    </div>
+                    <div class="status-badge ${pass?'passed':''}">${lock?'LOCK':(pass?'CLEAR':'START')}</div>
+                `;
+                d.onclick = () => { if(!lock) prepareLesson(l.id); };
+                list.appendChild(d);
+            });
+        }
+
+        function toggleDemo() {
+            if(isPlaying && isDemo) stopDemo();
+            else {
+                initAudio();
+                document.getElementById('btn-play-demo').innerHTML = TEXT[lang].stopDemo;
+                document.getElementById('btn-play-demo').classList.add('playing');
+                isDemo=true; isPlaying=true; notes=[]; noteIndex=0; nextNoteTime=audioCtx.currentTime+0.5;
+                draw(); schedule();
+            }
+        }
+        function stopDemo() {
+            isPlaying=false; isDemo=false;
+            document.getElementById('btn-play-demo').innerHTML = TEXT[lang].demo;
+            document.getElementById('btn-play-demo').classList.remove('playing');
+            cancelAnimationFrame(animationId); ctx.clearRect(0,0,canvas.width,canvas.height);
+        }
+
+        // --- 9. STARTUP ---
+        loadSave();
+        document.getElementById('btn-help').onclick=()=>showModal('modal-help');
+        document.getElementById('close-help').onclick=()=>showModal('modal-menu');
+        document.getElementById('btn-stats').onclick=()=>{ updateTexts(); showModal('modal-stats'); renderChart(); };
+        document.getElementById('close-stats').onclick=()=>showModal('modal-menu');
+        document.getElementById('btn-play-demo').onclick=toggleDemo;
+        document.getElementById('btn-start-session').onclick=()=>{
+            if(isDemo) stopDemo(); initAudio(); hideModals(); document.body.classList.add('playing');
+            const ce=document.getElementById('countdown-text');
+            const beat=60/currentLesson.bpm;
+            document.getElementById('hud-status').innerText=`LESSON ${currentLesson.id}`;
+            notes=[]; hitHistory=[]; noteIndex=0; draw();
+            let c=4;
+            function tick(){
+                if(c>0) { ce.innerText=c; ce.className='count-anim'; playSound('count',audioCtx.currentTime); setTimeout(()=>ce.className='',beat*900); setTimeout(tick,beat*1000); c--; }
+                else { ce.innerText="GO!"; ce.className='count-anim'; playSound('kick',audioCtx.currentTime); setTimeout(()=>{ ce.innerText=""; isPlaying=true; nextNoteTime=audioCtx.currentTime; schedule(); },beat*1000); }
+            }
+            tick();
+        };
+        document.getElementById('btn-cancel-brief').onclick=()=>{ if(isDemo) stopDemo(); renderMenu(); };
+        document.getElementById('btn-reset-data').onclick=resetSave;
+        document.addEventListener('keydown', e=>{ if(e.key==='x'||e.key==='ArrowUp') handleInput(1); if(e.key==='z'||e.key==='ArrowDown') handleInput(-1); });
+        document.addEventListener('touchstart', e=>{ if(e.target.tagName==='CANVAS'){ e.preventDefault(); handleInput(e.touches[0].clientY<window.innerHeight/2?1:-1); } }, {passive:false});
+
+        function renderChart() {
+            const c=document.getElementById('statsChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            const l=[], d=[];
+            LESSON_DATA.forEach(x=>{ if(progress.passed.includes(x.id)&&progress.stats[x.id]){ l.push(x.id); d.push(progress.stats[x.id].bias); } });
+            if(l.length===0){ l.push(0); d.push(0); }
+            chartInstance = new Chart(c, {
+                type:'line', data:{ labels:l, datasets:[{ label:'Bias(ms)', data:d, borderColor:'#4cc9f0', tension:0.3, pointRadius:3 }] },
+                options:{ responsive:true, maintainAspectRatio:false, scales:{ x:{display:false}, y:{ suggestedMin:-50, suggestedMax:50, grid:{color:'#333'} } }, plugins:{legend:{display:false}} }
+            });
+        }
+    </script>
+</body>
+</html>

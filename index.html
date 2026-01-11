@@ -64,19 +64,14 @@
         #app-footer a { color: #777; text-decoration: none; pointer-events: auto; }
 
         /* MODALS */
-        /* MODALS */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.92); backdrop-filter: blur(8px);
-            
-            /* ★修正1: ここを100に戻す (ヘッダー110より下にする) */
             z-index: 100; 
-            
             opacity: 0; pointer-events: none; transition: opacity 0.3s;
             display: flex; justify-content: center; align-items: center;
         }
 
-        /* ★修正2: キャリブレーション画面だけは、ヘッダーより上(300)にする */
         #modal-calibration {
             z-index: 300 !important;
         }
@@ -115,8 +110,7 @@
             font-family: 'Roboto Mono'; font-size: 1rem; cursor: pointer; border-radius: 4px; transition: 0.2s; width: 200px;
         }
         .lang-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
-        /* Disable interaction on title until calibration is done/dismissed if needed, or just let modal block it */
-
+        
         /* LESSON LIST */
         #lesson-list { flex: 1; overflow-y: auto; padding-right: 5px; }
         .phase-header { margin-top: 20px; margin-bottom: 5px; font-size: 0.75rem; color: #888; border-bottom: 1px solid #333; padding-bottom: 2px; font-family: 'Roboto Mono'; font-weight: bold; text-transform: uppercase; }
@@ -330,7 +324,6 @@
         // --- 1. LANGUAGE & TEXT ---
         let lang = 'ja';
         
-        // ★この TEXT オブジェクト全体をコピーして置き換えてください
         const TEXT = {
             ja: {
                 menuTitle: "カリキュラム",
@@ -406,7 +399,6 @@
             }
         };
 
-        // --- 2. LESSON DATA (50 LEVELS) ---
         // --- 2. LESSON DATA (50 LEVELS) ---
         const LESSON_DATA = [
             // --- PHASE 1: BASICS (Lv.1-10) ---
@@ -504,7 +496,6 @@
                 document.getElementById('main-header').style.display = 'flex';
                 document.getElementById('app-footer').style.display = 'block';
 
-                // ★【修正点】データの有無で分岐させる
                 if (!localStorage.getItem(OFFSET_KEY)) {
                     // データがない場合 -> 初期設定(キャリブレーション)へ
                     showWelcome();
@@ -781,7 +772,6 @@
             showResult(grade, Math.round(mean), Math.round(sd), msg);
         }
 
-        // --- 【追加コード】ここから ---
         function toggleDemo() {
             if(isDemo) {
                 stopDemo();
@@ -793,7 +783,6 @@
                 noteIndex = 0;
                 nextNoteTime = audioCtx.currentTime;
                 
-                // ボタンの見た目を変える
                 const btn = document.getElementById('btn-play-demo');
                 if(btn) {
                     btn.innerHTML = TEXT[lang].stopDemo;
@@ -810,14 +799,12 @@
             isPlaying = false;
             document.body.classList.remove('playing');
             
-            // ボタンを元に戻す
             const btn = document.getElementById('btn-play-demo');
             if(btn) {
                 btn.innerHTML = TEXT[lang].demo;
                 btn.classList.remove('playing');
             }
         }
-        // --- 【追加コード】ここまで ---
 
         // --- 8. UI CONTROLLERS & CALIBRATION ---
         function showModal(id) { document.querySelectorAll('.modal-overlay').forEach(e=>e.classList.remove('active')); document.getElementById(id).classList.add('active'); }
@@ -873,32 +860,10 @@
             calibTimerId = null;
         }
 
-        function handleCalibrationTap() {
-            if(!isCalibrating) return;
-            const now = audioCtx.currentTime;
-            const interval = 60 / CALIB_BPM;
-            const lastBeat = calibNextTime - interval;
-            const nextBeat = calibNextTime;
-            const distLast = Math.abs(now - lastBeat);
-            const distNext = Math.abs(now - nextBeat);
-            let targetTime = (distLast < distNext) ? lastBeat : nextBeat;
-            
-            let rawDiff = now - targetTime;
-            if(Math.abs(rawDiff) > 0.3) return;
-
-            userOffset = (userOffset * (1 - CALIB_ALPHA)) + (rawDiff * CALIB_ALPHA);
-            document.getElementById('calib-offset-val').innerText = Math.round(userOffset * 1000);
-            
-            const osc=audioCtx.createOscillator(); const g=audioCtx.createGain();
-            osc.frequency.value=1200; g.gain.setValueAtTime(0.1,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.05);
-            osc.connect(g); g.connect(audioCtx.destination); osc.start(now); osc.stop(now+0.05);
-        }
-
         function saveCalibration() {
             stopCalibrationLoop();
             localStorage.setItem(OFFSET_KEY, userOffset.toFixed(5));
             hideModals();
-            // ★【修正点】設定完了後にメニューを開く
             renderMenu();
         }
 
@@ -906,9 +871,8 @@
             stopCalibrationLoop();
             loadSave();
             hideModals();
-            // キャンセル時もメニューへ（初回でなければ）
             if(localStorage.getItem(OFFSET_KEY)) renderMenu();
-            else showWelcome(); // データなければ戻る
+            else showWelcome(); 
         }
 
         function prepareLesson(id) {
@@ -938,9 +902,6 @@
             }
         }
 
-        // --- 8. UI CONTROLLERS & CALIBRATION (Partial: renderMenu) ---
-
-        // ✅ renderMenu() の最後にヘッダーボタンイベントを統合
         function renderMenu() {
             updateTexts();
             const list = document.getElementById('lesson-list'); 
@@ -974,8 +935,6 @@
                 list.appendChild(d);
             });
 
-            // ✅ メニュー表示後にヘッダーボタンを登録
-            // これにより、画面遷移のたびに確実にイベントが再バインドされます
             if(document.getElementById('btn-calib')) {
                 document.getElementById('btn-calib').onclick = () => startCalibration();
             }
@@ -994,11 +953,9 @@
         // --- 9. STARTUP ---
         loadSave();
 
-        // ✅ Close ボタンはメニュー表示に関係なく登録できるため、ここで一度だけ定義
         document.getElementById('close-help').onclick = () => showModal('modal-menu');
         document.getElementById('close-stats').onclick = () => showModal('modal-menu');
 
-        // メイン機能のボタンイベント登録
         document.getElementById('btn-play-demo').onclick = toggleDemo;
         document.getElementById('btn-start-session').onclick = () => {
             if(isDemo) stopDemo(); 
@@ -1046,29 +1003,17 @@
 
         document.getElementById('btn-reset-data').onclick = resetSave;
 
-
-        // 初回起動チェック
-        // 言語設定がまだ行われていない状態ではタイトル画面のまま待機
-        // 言語ボタンが押されたとき(setLang)に renderMenu または showWelcome が走るため
-        // ここでの自動呼び出しは「既にオフセット設定がある場合のみ」メニューを描画してもよいが
-        // setLang() 内のロジックに任せる形であれば、下記判定だけで十分です。
         if(!localStorage.getItem(OFFSET_KEY)) {
-             // まだ設定がない場合、タイトル画面の裏でWelcomeが出る準備だけしておく（表示はsetLangで制御）
-             // ※ここでは特に何もしなくてOK、ユーザー操作待ち
+             // Waiting for language selection
         }
 
         // --- 10. CHART RENDERING ---
         function renderChart() {
-            // キャンバス要素を取得
             const canvas = document.getElementById('statsChart');
-            if (!canvas) return; // エラー回避
-            
+            if (!canvas) return;
             const c = canvas.getContext('2d');
-
-            // 既存のチャートがあれば破棄（二重描画防止）
             if(chartInstance) chartInstance.destroy();
 
-            // データの準備
             const l=[], d=[];
             LESSON_DATA.forEach(x=>{ 
                 if(progress.passed.includes(x.id) && progress.stats[x.id]){ 
@@ -1077,10 +1022,8 @@
                 } 
             });
 
-            // データが無い場合のダミー表示
             if(l.length===0){ l.push(0); d.push(0); }
 
-            // チャート生成
             chartInstance = new Chart(c, {
                 type:'line', 
                 data:{ 
@@ -1105,12 +1048,9 @@
             });
         }
 
-      // --- 【最終修正版】入力イベント統合エリア (ここから下を全部書き換え) ---
+        // --- 11. INTEGRATED INPUT HANDLING ---
 
-        // ★1. フィードバック音（押した瞬間に必ず鳴らす）
-       // --- 【完全統合版】入力イベント処理 (これ以外は削除してください) ---
-
-        // 1. フィードバック音
+        // 1. Feedback Sound
         function triggerInputFeedback(now) {
             if(!audioCtx) return;
             const osc = audioCtx.createOscillator(); 
@@ -1124,11 +1064,36 @@
             osc.stop(now + 0.05);
         }
 
-        // 2. キーボード操作
+        // 2. Calibration Logic (Relaxed Judgment)
+        function handleCalibrationTap() {
+            if(!isCalibrating) return;
+            const now = audioCtx.currentTime;
+            const interval = 60 / CALIB_BPM;
+            
+            const lastBeat = calibNextTime - interval;
+            const nextBeat = calibNextTime;
+            const distLast = Math.abs(now - lastBeat);
+            const distNext = Math.abs(now - nextBeat);
+            let targetTime = (distLast < distNext) ? lastBeat : nextBeat;
+            
+            let rawDiff = now - targetTime;
+
+            userOffset = (userOffset * (1 - CALIB_ALPHA)) + (rawDiff * CALIB_ALPHA);
+            
+            const valEl = document.getElementById('calib-offset-val');
+            if(valEl) valEl.innerText = Math.round(userOffset * 1000);
+            
+            const visEl = document.getElementById('calib-visual');
+            if(visEl) {
+                visEl.classList.add('flash');
+                setTimeout(()=>visEl.classList.remove('flash'), 50);
+            }
+        }
+
+        // 3. Keyboard Input (Unified)
         document.addEventListener('keydown', e => { 
-            // A. キャリブレーション中
+            // A. Calibration Mode
             if(isCalibrating) {
-                // スペース、エンター、X、Z、矢印などに対応
                 if(e.code === 'Space' || e.code === 'Enter' || e.key === 'x' || e.key === 'z' || e.key.includes('Arrow')) {
                     e.preventDefault();
                     triggerInputFeedback(audioCtx.currentTime);
@@ -1137,21 +1102,16 @@
                 return;
             }
 
-            // B. 通常プレイ中
+            // B. Game Mode
             if(e.key === 'x' || e.key === 'ArrowUp') handleInput(1); 
             if(e.key === 'z' || e.key === 'ArrowDown') handleInput(-1); 
         });
 
-        // 3. マウス＆タッチ操作 (これ1つで両方対応)
+        // 4. Pointer Input (Unified for Touch/Mouse)
         document.addEventListener('pointerdown', e => {
-            
-            // A. キャリブレーション中
+            // A. Calibration Mode
             if(isCalibrating) {
-                // ★重要: ボタン（またはその中の文字）を押した場合は、リズム判定をしない
-                if(e.target.closest('button')) return;
-
-                // それ以外（背景や文字など）を押した場合のみ反応する
-                // (z-index対策として、モーダル自体またはその内部の要素なら反応させる)
+                if(e.target.closest('button')) return; // Ignore buttons
                 if(e.target.closest('#modal-calibration') || e.target.closest('.modal-overlay')) {
                     e.preventDefault();
                     triggerInputFeedback(audioCtx.currentTime); 
@@ -1160,94 +1120,13 @@
                 return;
             }
             
-            // B. ゲームプレイ中
+            // B. Game Mode
             if(isPlaying && !isDemo && e.target.tagName === 'CANVAS'){ 
                 e.preventDefault(); 
                 handleInput(e.clientY < window.innerHeight / 2 ? 1 : -1); 
             } 
         }, {passive: false});
 
-        // 4. キャリブレーション計算ロジック
-        function handleCalibrationTap() {
-            if(!isCalibrating) return;
-            const now = audioCtx.currentTime;
-            const interval = 60 / CALIB_BPM;
-            
-            const lastBeat = calibNextTime - interval;
-            const nextBeat = calibNextTime;
-            const distLast = Math.abs(now - lastBeat);
-            const distNext = Math.abs(now - nextBeat);
-            let targetTime = (distLast < distNext) ? lastBeat : nextBeat;
-            
-            let rawDiff = now - targetTime;
-
-            // 制限なしで値を更新（すぐに反応させるため）
-            userOffset = (userOffset * (1 - CALIB_ALPHA)) + (rawDiff * CALIB_ALPHA);
-            
-            const valEl = document.getElementById('calib-offset-val');
-            if(valEl) valEl.innerText = Math.round(userOffset * 1000);
-            
-            const visEl = document.getElementById('calib-visual');
-            if(visEl) {
-                visEl.classList.add('flash');
-                setTimeout(()=>visEl.classList.remove('flash'), 50);
-            }
-        }
-
-        // ★2. キーボード操作（スペース・エンター・矢印・X・Z 全対応）
-        document.addEventListener('keydown', e => { 
-            // A. キャリブレーション中
-            if(isCalibrating) {
-                // スペース、エンター、X、Z、矢印など、よく使うキーを許可
-                if(e.code === 'Space' || e.code === 'Enter' || e.key === 'x' || e.key === 'z' || e.key.includes('Arrow')) {
-                    e.preventDefault();
-                    triggerInputFeedback(audioCtx.currentTime); // 即座に音を鳴らす
-                    handleCalibrationTap();
-                }
-                return;
-            }
-
-            // B. 通常プレイ中
-            if(e.key === 'x' || e.key === 'ArrowUp') handleInput(1); 
-            if(e.key === 'z' || e.key === 'ArrowDown') handleInput(-1); 
-        });
-
-        // ★3. マウス＆タッチ操作（pointerdownを使えば両対応できる）
-        // 2. マウス＆タッチ操作 (Pointer Eventsで一本化)
-
-        // ★4. キャリブレーション計算ロジック（判定緩和版）
-        // 既存の handleCalibrationTap をこれで上書きします
-        function handleCalibrationTap() {
-            if(!isCalibrating) return;
-            const now = audioCtx.currentTime;
-            const interval = 60 / CALIB_BPM;
-            
-            // 一番近い拍を探す
-            const lastBeat = calibNextTime - interval;
-            const nextBeat = calibNextTime;
-            const distLast = Math.abs(now - lastBeat);
-            const distNext = Math.abs(now - nextBeat);
-            let targetTime = (distLast < distNext) ? lastBeat : nextBeat;
-            
-            let rawDiff = now - targetTime;
-
-            // ★重要: ここにあった「0.3秒ズレたら無視」のコードを削除しました。
-            // これで適当に連打しても反応するようになります。
-
-            // 値を更新
-            userOffset = (userOffset * (1 - CALIB_ALPHA)) + (rawDiff * CALIB_ALPHA);
-            
-            // 画面の数字を更新
-            const valEl = document.getElementById('calib-offset-val');
-            if(valEl) valEl.innerText = Math.round(userOffset * 1000);
-            
-            // ビジュアルエフェクト
-            const visEl = document.getElementById('calib-visual');
-            if(visEl) {
-                visEl.classList.add('flash');
-                setTimeout(()=>visEl.classList.remove('flash'), 50);
-            }
-        }
     </script>
 </body>
 </html>

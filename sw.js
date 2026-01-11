@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jrt-cache-v3'; // ★v3に変更（必須）
+const CACHE_NAME = 'jrt-cache-v4'; // ★v4に変更（必須）
 const ASSETS = [
   './',
   './index.html',

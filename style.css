@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+:root {
+    --bg: #0d0d10; --panel: #1a1a20; --text: #e0e0e0;
+    --accent: #4cc9f0; --accent-dim: rgba(76, 201, 240, 0.2);
+    --p1: #4cc9f0; --p2: #4895ef; --p3: #f72585; --p4: #b5179e; --p5: #ffd60a;
+}
+
+body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Noto Sans JP', sans-serif; color: var(--text); touch-action: none; height: 100vh; -webkit-tap-highlight-color: transparent; }
+
+/* UTILS */
+body.playing .hide-on-play { display: none !important; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+/* HEADER */
+header {
+    position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+    background: rgba(26, 26, 32, 0.95); backdrop-filter: blur(5px);
+    border-bottom: 1px solid #333; z-index: 110;
+    display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-sizing: border-box;
+}
+.brand { font-family: 'Roboto Mono'; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+
+/* CANVAS & GAME */
+#visualizer-area { position: relative; width: 100%; height: 100%; overflow: hidden; background: radial-gradient(circle at 50% 50%, #1f1f25 0%, #000 100%); }
+canvas#gameCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+/* FOOTER */
+#app-footer {
+    position: absolute; bottom: 10px; width: 100%; text-align: center;
+    font-family: 'Roboto Mono'; font-size: 0.7rem; color: #555; z-index: 150; pointer-events: none;
+}
+#app-footer a { color: #777; text-decoration: none; pointer-events: auto; }
+
+/* MODALS */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.92); backdrop-filter: blur(8px);
+    z-index: 100; 
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    display: flex; justify-content: center; align-items: center;
+}
+
+#modal-calibration {
+    z-index: 300 !important;
+}
+
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+.modal-box {
+    background: var(--panel); width: 95%; max-width: 500px; max-height: 85vh;
+    border-left: 4px solid var(--accent); border-radius: 4px;
+    padding: 20px; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column;
+}
+.modal-box h2 { margin-top: 0; font-family: 'Roboto Mono'; color: var(--accent); border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.2rem; }
+.modal-box p { line-height: 1.6; color: #ccc; font-size: 0.85rem; margin-bottom: 15px; }
+
+/* CALIBRATION SPECIFIC */
+#calib-visual {
+    width: 100px; height: 100px; border-radius: 50%; border: 4px solid #333; margin: 20px auto;
+    display: flex; justify-content: center; align-items: center; font-family: 'Roboto Mono'; font-size: 1.5rem; color: #fff;
+    transition: background 0.1s;
+}
+#calib-visual.flash { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent); }
+.calib-val { font-size: 2rem; font-weight: bold; color: var(--accent); font-family: 'Roboto Mono'; text-align: center; margin-bottom: 10px; }
+
+/* TITLE SCREEN */
+#title-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 200;
+    background: radial-gradient(circle, #1a1a2e 0%, #000000 100%);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    transition: opacity 0.5s;
+}
+.title-logo { font-family: 'Roboto Mono'; font-size: 3rem; font-weight: 900; color: var(--accent); text-shadow: 0 0 20px var(--accent); margin-bottom: 5px; text-align: center; line-height: 1; }
+.title-sub { font-family: 'Roboto Mono'; color: #666; margin-bottom: 30px; letter-spacing: 4px; font-size: 0.9rem; }
+.lang-btn {
+    background: transparent; border: 1px solid #555; color: #fff; padding: 15px 40px; margin: 8px;
+    font-family: 'Roboto Mono'; font-size: 1rem; cursor: pointer; border-radius: 4px; transition: 0.2s; width: 200px;
+}
+.lang-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
+
+/* LESSON LIST */
+#lesson-list { flex: 1; overflow-y: auto; padding-right: 5px; }
+.phase-header { margin-top: 20px; margin-bottom: 5px; font-size: 0.75rem; color: #888; border-bottom: 1px solid #333; padding-bottom: 2px; font-family: 'Roboto Mono'; font-weight: bold; text-transform: uppercase; }
+.lesson-card {
+    background: #25252e; margin-bottom: 8px; padding: 12px; border-radius: 6px;
+    border: 1px solid #333; transition: 0.2s; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+}
+.lesson-card:hover { border-color: var(--accent); background: #2a2a35; }
+.lesson-card.locked { opacity: 0.3; pointer-events: none; filter: grayscale(1); border-style: dashed; }
+
+.p1 .lvl-badge { color: var(--p1); border-color: var(--p1); }
+.p2 .lvl-badge { color: var(--p2); border-color: var(--p2); }
+.p3 .lvl-badge { color: var(--p3); border-color: var(--p3); }
+.p4 .lvl-badge { color: var(--p4); border-color: var(--p4); }
+.p5 .lvl-badge { color: var(--p5); border-color: var(--p5); box-shadow: 0 0 5px var(--p5); }
+
+.lvl-badge { font-size: 0.75rem; padding: 2px 8px; border: 1px solid #555; border-radius: 4px; background: #1a1a1a; margin-right: 12px; font-family: 'Roboto Mono'; min-width: 40px; text-align: center; }
+.status-badge { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; background: #111; color: #555; font-weight: bold; }
+.status-badge.passed { color: var(--accent); background: var(--accent-dim); }
+
+/* UI ELEMENTS */
+.btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 6px 14px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 0.85rem; transition: 0.2s; }
+.btn:hover { background: var(--accent); color: #000; }
+.btn-main { background: var(--accent); color: #121214; width: 100%; padding: 12px; font-size: 1rem; margin-top: 10px; }
+.btn-demo { background: transparent; border: 1px solid #aaa; color: #aaa; width: 100%; padding: 10px; margin-top: 5px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+.btn-demo:hover { background: #333; color: #fff; border-color: #fff; }
+.btn-demo.playing { background: #f05; color: #fff; border-color: #f05; animation: pulse 1s infinite; }
+.btn-reset { display: block; width: 100%; background: #200; color: #f55; border: 1px solid #400; padding: 10px; margin-top: 20px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; }
+.btn-secondary { background: #333; color: #ccc; border: 1px solid #555; width: 100%; padding: 10px; margin-top: 10px; cursor: pointer; border-radius: 4px; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+/* HUD & FEEDBACK */
+#countdown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 50; pointer-events: none; }
+#countdown-text { font-size: 8rem; font-weight: 900; color: #fff; text-shadow: 0 0 30px var(--accent); font-family: 'Roboto Mono'; opacity: 0; }
+.count-anim { animation: countPop 0.4s ease-out forwards; }
+@keyframes countPop { 0% { opacity:0; transform:scale(2); } 50% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(0.8); } }
+
+#hud { position: absolute; top: 70px; right: 20px; text-align: right; pointer-events: none; }
+#feedback-float { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: 900; opacity: 0; pointer-events: none; text-shadow: 0 0 10px #000; z-index: 20; white-space: nowrap; }
+
+.big-grade { font-size: 5rem; font-weight: 900; margin: 10px 0; font-family: 'Roboto Mono'; line-height: 1; }
+.grade-S { color: var(--p5); text-shadow: 0 0 20px var(--p5); }
+.grade-A { color: var(--accent); }
+.grade-B { color: #fff; }
+.grade-F { color: #555; }
+
+/* STATS */
+#chart-container { width: 100%; height: 220px; margin-bottom: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; box-sizing: border-box; }
+.briefing-tag { display: inline-block; background: #333; color: #aaa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-bottom: 5px; margin-right: 5px; }

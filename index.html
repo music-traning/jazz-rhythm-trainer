@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JAZZ RHYTHM TRAINER v5.0 GOD TIER</title>
+    <title>JAZZ RHYTHM TRAINER v5.4 (First Setup)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
@@ -14,7 +14,7 @@
             --p1: #4cc9f0; --p2: #4895ef; --p3: #f72585; --p4: #b5179e; --p5: #ffd60a;
         }
 
-        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Noto Sans JP', sans-serif; color: var(--text); touch-action: none; height: 100vh; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Noto Sans JP', sans-serif; color: var(--text); touch-action: none; height: 100vh; -webkit-tap-highlight-color: transparent; }
         
         /* UTILS */
         body.playing .hide-on-play { display: none !important; }
@@ -60,6 +60,15 @@
         .modal-box h2 { margin-top: 0; font-family: 'Roboto Mono'; color: var(--accent); border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.2rem; }
         .modal-box p { line-height: 1.6; color: #ccc; font-size: 0.85rem; margin-bottom: 15px; }
 
+        /* CALIBRATION SPECIFIC */
+        #calib-visual {
+            width: 100px; height: 100px; border-radius: 50%; border: 4px solid #333; margin: 20px auto;
+            display: flex; justify-content: center; align-items: center; font-family: 'Roboto Mono'; font-size: 1.5rem; color: #fff;
+            transition: background 0.1s;
+        }
+        #calib-visual.flash { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent); }
+        .calib-val { font-size: 2rem; font-weight: bold; color: var(--accent); font-family: 'Roboto Mono'; text-align: center; margin-bottom: 10px; }
+
         /* TITLE SCREEN */
         #title-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 200;
@@ -68,12 +77,13 @@
             transition: opacity 0.5s;
         }
         .title-logo { font-family: 'Roboto Mono'; font-size: 3rem; font-weight: 900; color: var(--accent); text-shadow: 0 0 20px var(--accent); margin-bottom: 5px; text-align: center; line-height: 1; }
-        .title-sub { font-family: 'Roboto Mono'; color: #666; margin-bottom: 40px; letter-spacing: 4px; font-size: 0.9rem; }
+        .title-sub { font-family: 'Roboto Mono'; color: #666; margin-bottom: 30px; letter-spacing: 4px; font-size: 0.9rem; }
         .lang-btn {
             background: transparent; border: 1px solid #555; color: #fff; padding: 15px 40px; margin: 8px;
             font-family: 'Roboto Mono'; font-size: 1rem; cursor: pointer; border-radius: 4px; transition: 0.2s; width: 200px;
         }
         .lang-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
+        /* Disable interaction on title until calibration is done/dismissed if needed, or just let modal block it */
 
         /* LESSON LIST */
         #lesson-list { flex: 1; overflow-y: auto; padding-right: 5px; }
@@ -85,7 +95,6 @@
         .lesson-card:hover { border-color: var(--accent); background: #2a2a35; }
         .lesson-card.locked { opacity: 0.3; pointer-events: none; filter: grayscale(1); border-style: dashed; }
         
-        /* Phase Colors */
         .p1 .lvl-badge { color: var(--p1); border-color: var(--p1); }
         .p2 .lvl-badge { color: var(--p2); border-color: var(--p2); }
         .p3 .lvl-badge { color: var(--p3); border-color: var(--p3); }
@@ -104,6 +113,7 @@
         .btn-demo:hover { background: #333; color: #fff; border-color: #fff; }
         .btn-demo.playing { background: #f05; color: #fff; border-color: #f05; animation: pulse 1s infinite; }
         .btn-reset { display: block; width: 100%; background: #200; color: #f55; border: 1px solid #400; padding: 10px; margin-top: 20px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; }
+        .btn-secondary { background: #333; color: #ccc; border: 1px solid #555; width: 100%; padding: 10px; margin-top: 10px; cursor: pointer; border-radius: 4px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
         /* HUD & FEEDBACK */
@@ -130,17 +140,20 @@
 
     <div id="title-screen">
         <div class="title-logo">JAZZ RHYTHM<br>TRAINER</div>
-        <div class="title-sub">GOD TIER EDITION (50 LEVELS)</div>
+        <div class="title-sub">GOD TIER EDITION</div>
+        
         <button class="lang-btn" onclick="setLang('ja')">🇯🇵 START (JP)</button>
         <button class="lang-btn" onclick="setLang('en')">🇺🇸 START (EN)</button>
+
         <div style="position:absolute; bottom:20px; font-size:0.7rem; color:#666; font-family:'Roboto Mono';">
             &copy; 2026 buro | <a href="https://note.com/jazzy_begin" target="_blank" style="color:#888;">note.com/jazzy_begin</a>
         </div>
     </div>
 
     <header class="hide-on-play" style="display:none;" id="main-header">
-        <div class="brand">JRT <span style="font-size:0.6em; color:#666;">v5.0</span></div>
+        <div class="brand">JRT <span style="font-size:0.6em; color:#666;">v5.4</span></div>
         <div>
+            <button class="btn" id="btn-calib">🔧 CALIB</button>
             <button class="btn" id="btn-stats">📊 STATS</button>
             <button class="btn" id="btn-help">?</button>
         </div>
@@ -160,12 +173,46 @@
         &copy; 2026 buro | <a href="https://note.com/jazzy_begin" target="_blank">note.com/jazzy_begin</a>
     </div>
 
+    <div id="modal-welcome" class="modal-overlay">
+        <div class="modal-box" style="text-align:center;">
+            <h2 style="color:#fff; border:none;">INITIAL SETUP</h2>
+            <div style="text-align:left; font-size:0.85rem; margin-bottom:20px; background:#222; padding:15px; border-radius:6px;">
+                <div style="margin-bottom:10px;">
+                    <strong style="color:var(--accent);">【必須】遅延調整</strong><br>
+                    正確なリズム判定のため、最初に調整を行います。<br>下のボタンを押して開始してください。
+                </div>
+                <div style="border-top:1px solid #444; padding-top:10px; color:#aaa;">
+                    <strong style="color:#fff;">[REQUIRED] Calibration</strong><br>
+                    Let's calibrate your audio latency first.<br>Tap the button below to start.
+                </div>
+            </div>
+            <button class="btn btn-main" onclick="startCalibrationFromWelcome()">🔧 START SETUP (設定開始)</button>
+            <button class="btn" style="background:none; border:none; color:#555; font-size:0.8rem; margin-top:10px;" onclick="closeWelcome()">SKIP (スキップ)</button>
+        </div>
+    </div>
+
     <div id="modal-menu" class="modal-overlay">
         <div class="modal-box">
             <h2 id="menu-title">CURRICULUM</h2>
             <p id="menu-desc">...</p>
             <div id="lesson-list"></div>
             <button class="btn-reset" id="btn-reset-data">🗑 RESET DATA</button>
+        </div>
+    </div>
+
+    <div id="modal-calibration" class="modal-overlay">
+        <div class="modal-box" style="text-align:center;">
+            <h2 style="text-align:center;">CALIBRATION</h2>
+            <p style="text-align:center; font-size:0.8rem; color:#aaa;">
+                リズムに合わせて画面をタップしてください。<br>Tap to the rhythm.
+            </p>
+            <div id="calib-visual">TAP</div>
+            <div style="margin:20px 0;">
+                <div style="font-size:0.8rem; color:#888;">OFFSET (LATENCY)</div>
+                <div class="calib-val"><span id="calib-offset-val">60</span><span style="font-size:1rem; color:#555;">ms</span></div>
+            </div>
+            <button class="btn btn-main" onclick="saveCalibration()">SAVE & CLOSE</button>
+            <button class="btn btn-secondary" onclick="cancelCalibration()">CANCEL</button>
         </div>
     </div>
 
@@ -222,7 +269,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
         // --- 1. LANGUAGE & TEXT ---
         let lang = 'ja';
         const TEXT = {
@@ -242,6 +289,9 @@
                     <p><strong>1. 円運動</strong><br>リズムを「点」ではなく「円の周期」で捉えます。</p>
                     <p><strong>2. Gap (無音)</strong><br>Lv.30以降、ガイド音が消える「Gap」が登場します。</p>
                     <p><strong>3. 構成</strong><br>Lv.1-20: Straight (均等)<br>Lv.21-50: Swing (3連符)</p>
+                    <hr style="border-color:#333;">
+                    <p><strong>4. 遅延調整 (Calibration)</strong><br>
+                    音がズレて感じる場合は、画面上部の [🔧 CALIB] ボタンからいつでも調整可能です。</p>
                 `,
                 resetConfirm: "記録を全消去しますか？",
                 phases: [
@@ -266,6 +316,9 @@
                     <span style="color:#4cc9f0;">● Low</span>: [DOWN] / [Z] / Bottom Screen</p>
                     <hr style="border-color:#333;">
                     <p><strong>Structure</strong><br>Lv.1-20: Straight (Even)<br>Lv.21-50: Swing (Triplet)</p>
+                    <hr style="border-color:#333;">
+                    <p><strong>Calibration</strong><br>
+                    Audio lag? Tap the [🔧 CALIB] button at the top to adjust latency anytime.</p>
                 `,
                 resetConfirm: "Delete all progress?",
                 phases: [
@@ -278,6 +331,7 @@
             }
         };
 
+        // --- 2. LESSON DATA (50 LEVELS) ---
         // --- 2. LESSON DATA (50 LEVELS) ---
         const LESSON_DATA = [
             // --- PHASE 1: BASICS (Lv.1-10) ---
@@ -293,51 +347,51 @@
             { id: 10, p:1, bpm: 80, r:0, s:0.13, d:12, snd:'click-gap-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"P1修了検定",s:"Gap 4",o:"ガイドが消えます。",a:"心のメトロノームを信じて。"}, en:{t:"P1 Exam",s:"Gap 4",o:"Guide vanishes.",a:"Trust your inner clock."} },
 
             // --- PHASE 2: GROOVE (Lv.11-20) ---
-            { id: 11, p:2, bpm: 80, r:0, s:0.12, d:16, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Backbeat 80",s:"2拍4拍",o:"ロックの基本。",a:"クリックのない1・3拍を感じて。"}, en:{t:"Backbeat 80",s:"2 & 4",o:"Rock basic.",a:"Feel the 1 & 3."} },
-            { id: 12, p:2, bpm: 100,r:0, s:0.12, d:16, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Backbeat 100",s:"2拍4拍",o:"テンポアップ。",a:"体が動いてきましたか？"}, en:{t:"Backbeat 100",s:"2 & 4",o:"Tempo up.",a:"Move your body."} },
-            { id: 13, p:2, bpm: 70, r:0, s:0.12, d:12, snd:'click-up-str', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 70",s:"裏打ち",o:"粘り強く待つ。",a:"早押し厳禁。ギリギリまで待って。"}, en:{t:"Upbeat 70",s:"Off-beat",o:"Wait for it.",a:"Don't rush."} },
-            { id: 14, p:2, bpm: 90, r:0, s:0.11, d:12, snd:'click-up-str', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 90",s:"裏打ち",o:"速い裏拍。",a:"突っ込みやすいです。冷静に。"}, en:{t:"Upbeat 90",s:"Off-beat",o:"Fast upbeat.",a:"Stay cool."} },
-            { id: 15, p:2, bpm: 80, r:0, s:0.11, d:16, snd:'click-4', pat:[1,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0], ja:{t:"食うリズム A",s:"シンコペーション",o:"リズムの強調。",a:"付点音符の長さを正確に。"}, en:{t:"Syncopation A",s:"Syncopation",o:"Accent.",a:"Keep lengths accurate."} },
-            { id: 16, p:2, bpm: 100,r:0, s:0.10, d:16, snd:'click-4', pat:[1,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0], ja:{t:"食うリズム B",s:"シンコペーション",o:"躍動感。",a:"前のめりにならないように。"}, en:{t:"Syncopation B",s:"Syncopation",o:"Drive.",a:"Don't lean forward."} },
-            { id: 17, p:2, bpm: 110,r:0, s:0.10, d:24, snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"鼓動 110",s:"4分音符",o:"速いパルス。",a:"クリックを「消す」感覚で叩く。"}, en:{t:"Pulse 110",s:"Quarter",o:"Fast pulse.",a:"Bury the click."} },
-            { id: 18, p:2, bpm: 120,r:0, s:0.09, d:24, snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"疾走 120",s:"8分音符",o:"8ビートの完成形。",a:"力まないこと。脱力が鍵です。"}, en:{t:"Drive 120",s:"8th Note",o:"Full 8-beat.",a:"Relaxation is key."} },
-            { id: 19, p:2, bpm: 100,r:0, s:0.09, d:32, snd:'click-gap-4', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"Gap 8th",s:"4小節消失",o:"長い無音区間。",a:"自分のリズムを信じ抜くこと。"}, en:{t:"Gap 8th",s:"4-Bar Gap",o:"Long silence.",a:"Trust your groove."} },
-            { id: 20, p:2, bpm: 110,r:0, s:0.08, d:32, snd:'click-gap-4', pat:[1,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0], ja:{t:"P2修了検定",s:"総合",o:"Straightの卒業。",a:"これができれば脱初心者です。"}, en:{t:"P2 Exam",s:"Review",o:"Graduation.",a:"You are ready."} },
+            { id: 11, p:2, bpm: 100,r:0, s:0.13, d:16, snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"鼓動 100",s:"4分音符",o:"桁が変わる速度。",a:"ここからが本番です。"}, en:{t:"Pulse 100",s:"Quarter",o:"Triple digits.",a:"Real game starts here."} },
+            { id: 12, p:2, bpm: 100,r:0, s:0.12, d:16, snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"疾走 100",s:"8分音符",o:"ロックの基本テンポ。",a:"縦ノリで刻みましょう。"}, en:{t:"Drive 100",s:"8th Note",o:"Rock standard.",a:"Keep it vertical."} },
+            { id: 13, p:2, bpm: 110,r:0, s:0.12, d:16, snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"疾走 110",s:"8分音符",o:"少し速い連打。",a:"脱力しないと間に合いません。"}, en:{t:"Drive 110",s:"8th Note",o:"Faster flow.",a:"Relax to keep up."} },
+            { id: 14, p:2, bpm: 120,r:0, s:0.12, d:16, snd:'click-8', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"疾走 120",s:"8分音符",o:"標準的なアップテンポ。",a:"呼吸を止めないで。"}, en:{t:"Drive 120",s:"8th Note",o:"Standard Up-tempo.",a:"Don't hold breath."} },
+            { id: 15, p:2, bpm: 80, r:0, s:0.12, d:12, snd:'click-4', pat:[1,0,0,1,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"16ビート",s:"タッ・カッ",o:"16分音符の裏。",a:"「タ・カ」の「カ」の部分。"}, en:{t:"16th Feel",s:"Syncopation",o:"The 'e' and 'a'.",a:"Feel the subdiv."} },
+            { id: 16, p:2, bpm: 90, r:0, s:0.11, d:16, snd:'click-4', pat:[1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0], ja:{t:"ファンク",s:"16分音符",o:"食うリズム。",a:"身体を揺らしてリズムを取る。"}, en:{t:"Funk",s:"16th Sync",o:"Anticipation.",a:"Move your body."} },
+            { id: 17, p:2, bpm: 100,r:0, s:0.11, d:16, snd:'click-up-str', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 100",s:"裏打ち",o:"高速な裏打ち。",a:"スカやレゲエのイメージで。"}, en:{t:"Upbeat 100",s:"Off-beat",o:"Fast Off-beat.",a:"Ska/Reggae feel."} },
+            { id: 18, p:2, bpm: 60, r:0, s:0.10, d:8,  snd:'click-4', pat:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], ja:{t:"マシンガン",s:"16分連打",o:"正確無比な連打。",a:"指先のコントロール。"}, en:{t:"Machinegun",s:"16th Run",o:"Precision run.",a:"Finger control."} },
+            { id: 19, p:2, bpm: 120,r:0, s:0.10, d:16, snd:'click-gap-2', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"空白 120",s:"Gap 2",o:"2小節消えます。",a:"体感時間を信じる。"}, en:{t:"Void 120",s:"Gap 2",o:"2 Bars silence.",a:"Trust internal clock."} },
+            { id: 20, p:2, bpm: 130,r:0, s:0.09, d:24, snd:'click-gap-4', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"P2修了検定",s:"Gap 4",o:"8ビートの卒業試験。",a:"ガイドなしで走りきれ。"}, en:{t:"P2 Exam",s:"Gap 4",o:"8-beat Final.",a:"Run without guide."} },
 
             // --- PHASE 3: SWING ENTRY (Lv.21-30) ---
-            { id: 21, p:3, bpm: 60, r:0.33, s:0.12, d:12, snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Swing 60",s:"3連フィール",o:"【重要】ここから跳ねます。",a:"「タッ・タ・タッ・タ」。円が歪みます。"}, en:{t:"Swing 60",s:"Triplet",o:"Enter SWING.",a:"'Da... da Da... da'."} },
-            { id: 22, p:3, bpm: 80, r:0.33, s:0.12, d:12, snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Swing 80",s:"3連フィール",o:"シャッフルの基本。",a:"カクカクしない。滑らかに。"}, en:{t:"Swing 80",s:"Shuffle",o:"Smoothly.",a:"Don't be robotic."} },
-            { id: 23, p:3, bpm: 70, r:0.33, s:0.11, d:16, snd:'click-4', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Swing 8th",s:"レガート",o:"「チーチッキ」",a:"裏拍が遅く来ます。粘って。"}, en:{t:"Swing 8th",s:"Legato",o:"Spang-a-lang.",a:"Upbeat comes late."} },
-            { id: 24, p:3, bpm: 90, r:0.33, s:0.11, d:16, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Jazz Ride",s:"ドラム同期",o:"シンバルと合わせる。",a:"ライドシンバルと一体化して。"}, en:{t:"Jazz Ride",s:"Sync",o:"Lock with Ride.",a:"Become the cymbal."} },
-            { id: 25, p:3, bpm: 80, r:0.33, s:0.10, d:16, snd:'click-up-sw', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏拍 Swing",s:"裏打ち",o:"3連の3つ目。",a:"これが難しい！一番後ろを感じて。"}, en:{t:"Upbeat Sw",s:"Off-beat",o:"3rd triplet.",a:"Very late upbeat."} },
-            { id: 26, p:3, bpm: 100,r:0.33, s:0.10, d:16, snd:'click-24', pat:[1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0], ja:{t:"Charleston",s:"付点リズム",o:"チャールストン。",a:"「ダッ・・・(ウ)タッ」"}, en:{t:"Charleston",s:"Dotted",o:"Classic Jazz.",a:"'Da... (uh) Da'."} },
-            { id: 27, p:3, bpm: 110,r:0.33, s:0.09, d:24, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Walk 110",s:"4ビート",o:"ベースライン。",a:"歩くように。止まらないで。"}, en:{t:"Walk 110",s:"4-beat",o:"Walking Bass.",a:"Keep walking."} },
-            { id: 28, p:3, bpm: 100,r:0.33, s:0.09, d:24, snd:'click-24', pat:[1,0,0,1,-1,1,0,0,1,0,0,1,0,0,1,0], ja:{t:"Syncopation S",s:"食うリズム",o:"スイングでの食い。",a:"重心を低く保ってください。"}, en:{t:"Synco Sw",s:"Syncopation",o:"Low gravity.",a:"Stay grounded."} },
-            { id: 29, p:3, bpm: 120,r:0.33, s:0.08, d:32, snd:'click-gap-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Gap Swing",s:"4小節消失",o:"スイングのキープ。",a:"跳ねる感覚を維持できますか？"}, en:{t:"Gap Swing",s:"Gap",o:"Keep bouncing.",a:"Don't lose it."} },
-            { id: 30, p:3, bpm: 120,r:0.33, s:0.08, d:32, snd:'click-up-sw', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"P3修了検定",s:"高速裏拍",o:"中級者の壁。",a:"ここを越えれば上級者です。"}, en:{t:"P3 Exam",s:"Fast Up",o:"The Wall.",a:"Almost advanced."} },
+            { id: 21, p:3, bpm: 100,r:0.33,s:0.12,d:16,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"スイング 100",s:"Shuffle",o:"ここから世界が歪む。",a:"3連符の真ん中を抜く感覚。"}, en:{t:"Swing 100",s:"Shuffle",o:"World bends here.",a:"Triplet feel."} },
+            { id: 22, p:3, bpm: 110,r:0.33,s:0.12,d:16,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"スイング 110",s:"Shuffle",o:"楽しい跳ねリズム。",a:"「っタ、っタ」と発音して。"}, en:{t:"Swing 110",s:"Shuffle",o:"Bouncy rhythm.",a:"Say 'A-Ta, A-Ta'."} },
+            { id: 23, p:3, bpm: 120,r:0.33,s:0.11,d:16,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"スイング 120",s:"Shuffle",o:"標準的なジャズテンポ。",a:"レガート（滑らか）に。"}, en:{t:"Swing 120",s:"Shuffle",o:"Standard Jazz.",a:"Play legato."} },
+            { id: 24, p:3, bpm: 100,r:0.33,s:0.11,d:16,snd:'click-8', pat:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], ja:{t:"2フィール",s:"2分音符",o:"ベースラインの感覚。",a:"1と3拍目を重く。"}, en:{t:"2-Feel",s:"Half Note",o:"Bassline feel.",a:"Heavy on 1 & 3."} },
+            { id: 25, p:3, bpm: 110,r:0.33,s:0.10,d:16,snd:'click-up-sw',pat:[0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0], ja:{t:"裏打ちSW",s:"Swing裏",o:"スイングの裏拍は遅い。",a:"十分に待ってから叩く。"}, en:{t:"Up-Swing",s:"Off-beat",o:"Swing off-beat is late.",a:"Wait for it."} },
+            { id: 26, p:3, bpm: 120,r:0.33,s:0.10,d:16,snd:'click-8', pat:[1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0], ja:{t:"チャールストン",s:"付点4分",o:"ジャズの典型的リズム。",a:"「ダッ・・ウダッ・・」"}, en:{t:"Charleston",s:"Dotted Q",o:"Classic Jazz.",a:"'Da.. (u)Da..'."} },
+            { id: 27, p:3, bpm: 130,r:0.33,s:0.09,d:16,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"ウォーキング",s:"4分音符",o:"進撃のベースライン。",a:"前へ前へと進む推進力。"}, en:{t:"Walking",s:"Quarter",o:"Forward motion.",a:"Driving bass."} },
+            { id: 28, p:3, bpm: 140,r:0.33,s:0.09,d:16,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"スイング 140",s:"4分音符",o:"少し息が切れる速度。",a:"力むと遅れます。"}, en:{t:"Swing 140",s:"Quarter",o:"Getting hot.",a:"Tension causes lag."} },
+            { id: 29, p:3, bpm: 120,r:0.33,s:0.09,d:16,snd:'click-gap-2', pat:[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0], ja:{t:"空白SW 120",s:"Gap 2",o:"スイングでの空間把握。",a:"3連のグリッドを心に。"}, en:{t:"Void SW 120",s:"Gap 2",o:"Swing space.",a:"Mental triplet grid."} },
+            { id: 30, p:3, bpm: 130,r:0.33,s:0.08,d:24,snd:'click-gap-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"P3修了検定",s:"Gap 4",o:"スイングの卒業試験。",a:"ガイドなしで踊りきれ。"}, en:{t:"P3 Exam",s:"Gap 4",o:"Swing Final.",a:"Dance without guide."} },
 
             // --- PHASE 4: ADVANCED (Lv.31-40) ---
-            { id: 31, p:4, bpm: 130,r:0.33, s:0.07, d:32, snd:'click-24', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Med Swing",s:"BPM 130",o:"速度への適応。",a:"指先だけでコントロールします。"}, en:{t:"Med Swing",s:"130",o:"Fingertips.",a:"Control clearly."} },
-            { id: 32, p:4, bpm: 140,r:0.33, s:0.07, d:32, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Fast Walk",s:"BPM 140",o:"アップテンポ。",a:"思考停止。反応速度の世界へ。"}, en:{t:"Fast Walk",s:"140",o:"Reaction.",a:"Don't think."} },
-            { id: 33, p:4, bpm: 120,r:0.33, s:0.07, d:32, snd:'gap-2', pat:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0], ja:{t:"Poly 3:4",s:"ポリリズム",o:"4拍子の中の3拍子。",a:"小節線を見失わないで。"}, en:{t:"Poly 3:4",s:"3 over 4",o:"Polyrhythm.",a:"Watch the bar line."} },
-            { id: 34, p:4, bpm: 150,r:0.33, s:0.06, d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Bebop Entry",s:"BPM 150",o:"ビバップの入り口。",a:"ライドシンバルを追い越さないで。"}, en:{t:"Bebop",s:"150",o:"Entry.",a:"Don't rush the ride."} },
-            { id: 35, p:4, bpm: 130,r:0.33, s:0.06, d:40, snd:'gap-4', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"Ghost Upbeat",s:"裏拍×Gap",o:"無音での裏打ち。",a:"誰も助けてくれません。"}, en:{t:"Ghost Up",s:"Silent",o:"No help.",a:"You are alone."} },
-            { id: 36, p:4, bpm: 160,r:0.33, s:0.06, d:32, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"Bebop Fast",s:"BPM 160",o:"高速4ビート。",a:"リラックス。呼吸を忘れずに。"}, en:{t:"Bebop Fast",s:"160",o:"Breathe.",a:"Stay relaxed."} },
-            { id: 37, p:4, bpm: 140,r:0.33, s:0.05, d:40, snd:'click-24', pat:[1,0,0,1,-1,1,0,0,1,0,0,1,0,0,1,0], ja:{t:"Complex Sw",s:"複合リズム",o:"複雑なシンコペーション。",a:"パターンを歌ってください。"}, en:{t:"Complex",s:"Sing it",o:"Sing the rhythm.",a:"Complex pattern."} },
-            { id: 38, p:4, bpm: 170,r:0.33, s:0.05, d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Burnout 170",s:"BPM 170",o:"限界への挑戦。",a:"腕ではなく、指で叩く。"}, en:{t:"Burnout",s:"170",o:"Use fingers.",a:"Not arms."} },
-            { id: 39, p:4, bpm: 150,r:0.33, s:0.05, d:48, snd:'gap-4', pat:[1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0], ja:{t:"Chaos Gap",s:"ランダム消失",o:"不規則な無音。",a:"パルスは絶対です。"}, en:{t:"Chaos Gap",s:"Random",o:"Pulse is absolute.",a:"Don't waver."} },
-            { id: 40, p:4, bpm: 160,r:0.33, s:0.045,d:48, snd:'click-up-sw', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"P4修了検定",s:"極限裏拍",o:"BPM160の裏。",a:"人間の限界に近づいています。"}, en:{t:"P4 Exam",s:"Max Up",o:"Human limit.",a:"Push it."} },
+            { id: 31, p:4, bpm: 150,r:0.33,s:0.08,d:24,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"ハードバップ",s:"Fast Swing",o:"熱いジャズの入り口。",a:"シンバルレガートのイメージ。"}, en:{t:"Hard Bop",s:"Fast Swing",o:"Hot Jazz entry.",a:"Ride cymbal image."} },
+            { id: 32, p:4, bpm: 160,r:0.33,s:0.08,d:24,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"バーニング",s:"Fast Swing",o:"燃えるような疾走感。",a:"指先だけで制御する。"}, en:{t:"Burning",s:"Fast Swing",o:"Burning speed.",a:"Fingertip control."} },
+            { id: 33, p:4, bpm: 170,r:0.33,s:0.07,d:24,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"リミット",s:"Fast Swing",o:"思考停止の速度。",a:"考えるな、感じろ。"}, en:{t:"Limit",s:"Fast Swing",o:"No thinking.",a:"Don't think, feel."} },
+            { id: 34, p:4, bpm: 140,r:0.33,s:0.07,d:24,snd:'click-8', pat:[1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0], ja:{t:"複雑 140",s:"Syncopation",o:"高速チャールストン。",a:"パターンを見失わないで。"}, en:{t:"Complex 140",s:"Syncopation",o:"Fast Charleston.",a:"Stay focused."} },
+            { id: 35, p:4, bpm: 90, r:0, s:0.07, d:16, snd:'click-16',pat:[1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0], ja:{t:"ポリリズム",s:"3 over 4",o:"4拍子の中の3拍子。",a:"1拍半ごとのアクセント。"}, en:{t:"Polyrhythm",s:"3 over 4",o:"3 against 4.",a:"Every 1.5 beats."} },
+            { id: 36, p:4, bpm: 150,r:0.33,s:0.07,d:24,snd:'click-gap-2', pat:[0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0], ja:{t:"空白裏SW",s:"Gap Off",o:"ガイド無しで裏打ち。",a:"難易度S級の入り口。"}, en:{t:"Void Off",s:"Gap Off",o:"Blind off-beat.",a:"S-Tier entry."} },
+            { id: 37, p:4, bpm: 180,r:0.33,s:0.06,d:32,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"ビバップ",s:"Very Fast",o:"伝説的な速度。",a:"脱力しないと腕が死にます。"}, en:{t:"Bebop",s:"Very Fast",o:"Legendary speed.",a:"Relax or die."} },
+            { id: 38, p:4, bpm: 160,r:0.33,s:0.06,d:32,snd:'click-8', pat:[1,0,1,0,0,0,1,0,1,0,0,0,1,0,1,0], ja:{t:"ランニング",s:"8th Lines",o:"高速フレーズ。",a:"粒立ちを揃えて。"}, en:{t:"Running",s:"8th Lines",o:"Fast lines.",a:"Keep it even."} },
+            { id: 39, p:4, bpm: 100,r:0, s:0.06, d:16, snd:'click-gap-4', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"完全空白",s:"Gap 4 Off",o:"ガイド無し、裏拍のみ。",a:"自分の中の神を信じろ。"}, en:{t:"Total Void",s:"Gap 4 Off",o:"No guide, Off only.",a:"Trust your god."} },
+            { id: 40, p:4, bpm: 160,r:0.33,s:0.05,d:32,snd:'click-gap-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"P4修了検定",s:"Gap 4 Fast",o:"上級者の壁。",a:"プロレベルの安定感が必要。"}, en:{t:"P4 Exam",s:"Gap 4 Fast",o:"Pro Wall.",a:"Pro stability needed."} },
 
             // --- PHASE 5: GOD TIER (Lv.41-50) ---
-            { id: 41, p:5, bpm: 180,r:0.33, s:0.045,d:32, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"SONIC 180",s:"BPM 180",o:"音速の世界。",a:"考えるな、感じろ。"}, en:{t:"SONIC 180",s:"180",o:"Don't think.",a:"Feel."} },
-            { id: 42, p:5, bpm: 140,r:0.33, s:0.045,d:48, snd:'gap-4', pat:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0], ja:{t:"Poly Gap",s:"ポリ×Gap",o:"無音でのポリリズム。",a:"小節感覚の極地。"}, en:{t:"Poly Gap",s:"Silent Poly",o:"Bar sense.",a:"Extreme."} },
-            { id: 43, p:5, bpm: 190,r:0.33, s:0.04, d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"Bebop 190",s:"BPM 190",o:"プロ領域。",a:"もはやスポーツです。"}, en:{t:"Bebop 190",s:"190",o:"Pro level.",a:"It's a sport."} },
-            { id: 44, p:5, bpm: 150,r:0.33, s:0.04, d:64, snd:'gap-2', pat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0], ja:{t:"Silence",s:"2小節消失",o:"完全自律。",a:"クリックは不要ですか？"}, en:{t:"Silence",s:"No Click",o:"Independence.",a:"No click needed."} },
-            { id: 45, p:5, bpm: 200,r:0.33, s:0.04, d:40, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"SUPER 200",s:"BPM 200",o:"未知の領域。",a:"脱力・脱力・脱力。"}, en:{t:"SUPER 200",s:"200",o:"Unknown.",a:"Relax x3."} },
-            { id: 46, p:5, bpm: 160,r:0.33, s:0.035,d:48, snd:'click-up-sw', pat:[1,0,0,1,-1,1,0,0,1,0,1,0,0,1,0,-1], ja:{t:"Complex II",s:"複合連打",o:"難解な譜面。",a:"初見殺し。"}, en:{t:"Complex II",s:"Hard",o:"Puzzle.",a:"Tricky."} },
-            { id: 47, p:5, bpm: 210,r:0.33, s:0.035,d:32, snd:'drum-only', pat:[1,-1,0,-1,1,-1,0,-1,1,-1,0,-1,1,-1,0,-1], ja:{t:"HYPER 210",s:"BPM 210",o:"神速。",a:"残像が見えます。"}, en:{t:"HYPER 210",s:"210",o:"Godspeed.",a:"Afterimage."} },
-            { id: 48, p:5, bpm: 170,r:0.33, s:0.03, d:64, snd:'gap-4', pat:[1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1], ja:{t:"The Void",s:"虚無",o:"4小節無音の連打。",a:"自分自身との戦い。"}, en:{t:"The Void",s:"Empty",o:"Self battle.",a:"Fight yourself."} },
-            { id: 49, p:5, bpm: 220,r:0.33, s:0.03, d:40, snd:'click-24', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"OMEGA 220",s:"BPM 220",o:"最終試験。",a:"全てを出し切ってください。"}, en:{t:"OMEGA 220",s:"220",o:"Final Exam.",a:"All out."} },
+            { id: 41, p:5, bpm: 190,r:0.33,s:0.05,d:32,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"超高速 190",s:"Super Fast",o:"人間の限界に挑戦。",a:"もはや反射神経のゲーム。"}, en:{t:"Hyper 190",s:"Super Fast",o:"Human limit.",a:"Reflex game."} },
+            { id: 42, p:5, bpm: 200,r:0.33,s:0.05,d:32,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"超高速 200",s:"Super Fast",o:"未知の領域。",a:"瞬き厳禁。"}, en:{t:"Hyper 200",s:"Super Fast",o:"Unknown realm.",a:"Don't blink."} },
+            { id: 43, p:5, bpm: 210,r:0.33,s:0.04,d:32,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"超高速 210",s:"Super Fast",o:"音速を超えて。",a:"指が勝手に動く境地。"}, en:{t:"Hyper 210",s:"Super Fast",o:"Supersonic.",a:"Auto-pilot mode."} },
+            { id: 44, p:5, bpm: 170,r:0.33,s:0.04,d:32,snd:'drum-only', pat:[1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0], ja:{t:"ジャズドラム",s:"Comping",o:"ドラムとの対話。",a:"クリック音はありません。"}, en:{t:"Jazz Drums",s:"Comping",o:"Trade w/ drums.",a:"No click track."} },
+            { id: 45, p:5, bpm: 180,r:0.33,s:0.04,d:32,snd:'drum-only', pat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0], ja:{t:"裏の極意",s:"Upbeat Only",o:"ドラムに合わせて裏を叩く。",a:"究極のグルーヴ。"}, en:{t:"Upbeat Master",s:"Upbeat Only",o:"Groove w/ drums.",a:"Ultimate groove."} },
+            { id: 46, p:5, bpm: 140,r:0.33,s:0.04,d:32,snd:'click-gap-4', pat:[1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0], ja:{t:"心眼",s:"Blind Funk",o:"見えないリズムを叩く。",a:"心の目で見る。"}, en:{t:"Mind's Eye",s:"Blind Funk",o:"Hit invisible.",a:"See with mind."} },
+            { id: 47, p:5, bpm: 60, r:0, s:0.03, d:16, snd:'click-gap-4', pat:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], ja:{t:"禅",s:"Zen Space",o:"永遠のような空間。",a:"待つことの極致。"}, en:{t:"Zen",s:"Zen Space",o:"Eternal space.",a:"Master of waiting."} },
+            { id: 48, p:5, bpm: 220,r:0.33,s:0.04,d:48,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"光速 220",s:"Light Speed",o:"思考の向こう側。",a:"無心。"}, en:{t:"Lightspeed",s:"Light Speed",o:"Beyond thought.",a:"No mind."} },
+            { id: 49, p:5, bpm: 240,r:0.33,s:0.04,d:48,snd:'click-4', pat:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], ja:{t:"特異点",s:"Singularity",o:"リズムの崩壊と再生。",a:"全てを出し切れ。"}, en:{t:"Singularity",s:"Singularity",o:"Collapse & Rebirth.",a:"Give everything."} },
             { id: 50, p:5, bpm: 180,r:0.33, s:0.03, d:64, snd:'drum-only', pat:[1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1], ja:{t:"THE LEGEND",s:"完 全 制 覇",o:"免許皆伝。",a:"Enjoy Music."}, en:{t:"THE LEGEND",s:"GOD",o:"Mastery.",a:"Enjoy Music."} }
         ];
 
@@ -350,16 +404,39 @@
         let progress = { passed: [], stats: {} };
         let animationId;
         const SAVE_KEY = 'jrt_save_v5';
+        const OFFSET_KEY = 'jrt_offset';
+
+        let userOffset = 0.06;
+        
+        let isCalibrating = false;
+        let calibNextTime = 0;
+        let calibCount = 0;
+        let calibTimerId = null;
+        const CALIB_BPM = 100;
+        const CALIB_ALPHA = 0.1;
 
         // --- 4. CORE FUNCTIONS ---
         function setLang(l) {
             lang = l;
+            // ユーザーアクションをトリガーにAudioContextを初期化
+            initAudio(); 
+            
+            // タイトル画面をフェードアウト
             document.getElementById('title-screen').style.opacity = 0;
+            
             setTimeout(() => {
                 document.getElementById('title-screen').style.display = 'none';
                 document.getElementById('main-header').style.display = 'flex';
                 document.getElementById('app-footer').style.display = 'block';
-                renderMenu();
+
+                // ★【修正点】データの有無で分岐させる
+                if (!localStorage.getItem(OFFSET_KEY)) {
+                    // データがない場合 -> 初期設定(キャリブレーション)へ
+                    showWelcome();
+                } else {
+                    // データがある場合 -> メニューへ
+                    renderMenu();
+                }
             }, 500);
         }
 
@@ -382,6 +459,8 @@
             const d = localStorage.getItem(SAVE_KEY);
             if(d) progress = JSON.parse(d);
             if(!progress.stats) progress.stats = {};
+            const o = localStorage.getItem(OFFSET_KEY);
+            if(o) userOffset = parseFloat(o);
         }
         function saveProgress() { localStorage.setItem(SAVE_KEY, JSON.stringify(progress)); }
         function resetSave() {
@@ -392,9 +471,12 @@
             }
         }
 
-        // --- 5. AUDIO ENGINE (NO CHANGES - WORKS PERFECTLY) ---
+        // --- 5. AUDIO ENGINE ---
         function initAudio() {
-            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext({ latencyHint: 'interactive', sampleRate: 44100 });
+            }
             if(audioCtx.state === 'suspended') audioCtx.resume();
             if(!noiseBuffer) {
                 const b = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
@@ -469,7 +551,6 @@
                 const sixteenth = noteIndex % 16;
                 const actualTime = getSwingTime(nextNoteTime, sixteenth, bpm, currentLesson.r);
                 
-                // Click Logic
                 const st = currentLesson.snd;
                 let isGap = false;
                 if(st.includes('gap-4') && (bar+1)%4===0) isGap=true;
@@ -485,11 +566,10 @@
                     }
                     if(click) playSound('click', actualTime, 0.8);
 
-                    // Drum Groove
                     if(currentLesson.r > 0 && !st.includes('click-up')) {
                         if(sixteenth===4||sixteenth===12) playSound('hihat', actualTime, 0.7);
                         if(sixteenth===0||sixteenth===8) playSound('ride', actualTime, 0.7);
-                        if(sixteenth===6||sixteenth===14) playSound('ride', actualTime, 0.85); // Lang
+                        if(sixteenth===6||sixteenth===14) playSound('ride', actualTime, 0.85);
                         if(sixteenth===0||sixteenth===8) playSound('kick', actualTime, 0.5);
                     }
                 }
@@ -561,21 +641,30 @@
 
         // --- 7. INPUT & FEEDBACK ---
         function handleInput(type) {
+            if(isCalibrating) {
+                handleCalibrationTap();
+                return;
+            }
+
             if(!isPlaying || isDemo) return;
             const now = audioCtx.currentTime;
+            
             const osc=audioCtx.createOscillator(); const g=audioCtx.createGain();
             osc.frequency.value=800; g.gain.setValueAtTime(0.1,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.1);
             osc.connect(g); g.connect(audioCtx.destination); osc.start(now); osc.stop(now+0.1);
 
             let best=999, target=null;
+            const effectiveInputTime = now - userOffset;
+
             notes.forEach(n => {
                 if(n.processed || n.type !== type) return;
-                const d = Math.abs(n.time - now);
+                const d = Math.abs(effectiveInputTime - n.time);
                 if(d < best) { best = d; target = n; }
             });
+
             if(target && best < currentLesson.s) {
                 target.processed = true;
-                const diff = now - target.time;
+                const diff = effectiveInputTime - target.time;
                 hitHistory.push({diff:diff, type:'hit'});
                 const ms = Math.round(diff*1000);
                 const isP = Math.abs(ms) < 30;
@@ -601,7 +690,6 @@
             const sd = Math.sqrt(variance);
 
             let grade="F", msg="FAILED", passed=false;
-            // Phase-based difficulty
             const limit = currentLesson.p === 1 ? 60 : (currentLesson.p >= 4 ? 40 : 50);
 
             if (hits.length > total*0.8 && sd < limit) {
@@ -618,10 +706,98 @@
             showResult(grade, Math.round(mean), Math.round(sd), msg);
         }
 
-        // --- 8. UI CONTROLLERS ---
+        // --- 8. UI CONTROLLERS & CALIBRATION ---
         function showModal(id) { document.querySelectorAll('.modal-overlay').forEach(e=>e.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function hideModals() { document.querySelectorAll('.modal-overlay').forEach(e=>e.classList.remove('active')); }
         
+        // WELCOME & FIRST SETUP
+        function showWelcome() {
+            showModal('modal-welcome');
+        }
+        function closeWelcome() {
+            hideModals();
+        }
+        function startCalibrationFromWelcome() {
+            initAudio();
+            closeWelcome();
+            startCalibration();
+        }
+
+        // CALIBRATION
+        function startCalibration() {
+            initAudio();
+            isCalibrating = true;
+            calibNextTime = audioCtx.currentTime + 0.5;
+            calibCount = 0;
+            document.getElementById('calib-offset-val').innerText = Math.round(userOffset * 1000);
+            showModal('modal-calibration');
+            scheduleCalibration();
+        }
+
+        function scheduleCalibration() {
+            if(!isCalibrating) return;
+            const interval = 60 / CALIB_BPM;
+            
+            while(calibNextTime < audioCtx.currentTime + 0.1) {
+                playSound('click', calibNextTime);
+                const t = calibNextTime;
+                setTimeout(() => {
+                    if(!isCalibrating) return;
+                    const el = document.getElementById('calib-visual');
+                    el.classList.add('flash');
+                    setTimeout(()=>el.classList.remove('flash'), 50);
+                }, (t - audioCtx.currentTime)*1000);
+                
+                calibNextTime += interval;
+                calibCount++;
+            }
+            calibTimerId = setTimeout(scheduleCalibration, 50);
+        }
+
+        function stopCalibrationLoop() {
+            isCalibrating = false;
+            if(calibTimerId) clearTimeout(calibTimerId);
+            calibTimerId = null;
+        }
+
+        function handleCalibrationTap() {
+            if(!isCalibrating) return;
+            const now = audioCtx.currentTime;
+            const interval = 60 / CALIB_BPM;
+            const lastBeat = calibNextTime - interval;
+            const nextBeat = calibNextTime;
+            const distLast = Math.abs(now - lastBeat);
+            const distNext = Math.abs(now - nextBeat);
+            let targetTime = (distLast < distNext) ? lastBeat : nextBeat;
+            
+            let rawDiff = now - targetTime;
+            if(Math.abs(rawDiff) > 0.3) return;
+
+            userOffset = (userOffset * (1 - CALIB_ALPHA)) + (rawDiff * CALIB_ALPHA);
+            document.getElementById('calib-offset-val').innerText = Math.round(userOffset * 1000);
+            
+            const osc=audioCtx.createOscillator(); const g=audioCtx.createGain();
+            osc.frequency.value=1200; g.gain.setValueAtTime(0.1,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.05);
+            osc.connect(g); g.connect(audioCtx.destination); osc.start(now); osc.stop(now+0.05);
+        }
+
+        function saveCalibration() {
+            stopCalibrationLoop();
+            localStorage.setItem(OFFSET_KEY, userOffset.toFixed(5));
+            hideModals();
+            // ★【修正点】設定完了後にメニューを開く
+            renderMenu();
+        }
+
+        function cancelCalibration() {
+            stopCalibrationLoop();
+            loadSave();
+            hideModals();
+            // キャンセル時もメニューへ（初回でなければ）
+            if(localStorage.getItem(OFFSET_KEY)) renderMenu();
+            else showWelcome(); // データなければ戻る
+        }
+
         function prepareLesson(id) {
             currentLesson = LESSON_DATA.find(l=>l.id===id);
             const c = currentLesson[lang];
@@ -676,8 +852,11 @@
                 d.onclick = () => { if(!lock) prepareLesson(l.id); };
                 list.appendChild(d);
             });
-        }
 
+            // ★ 追加: メニュー表示のタイミングでキャリブレーションボタンのイベントを登録
+            const calibBtn = document.getElementById('btn-calib');
+            if(calibBtn) calibBtn.onclick = startCalibration;
+        }
         function toggleDemo() {
             if(isPlaying && isDemo) stopDemo();
             else {
@@ -699,6 +878,9 @@
         loadSave();
         document.getElementById('btn-help').onclick=()=>showModal('modal-help');
         document.getElementById('close-help').onclick=()=>showModal('modal-menu');
+        
+        // ★ 削除: ここにあった btn-calib の登録は renderMenu 内へ移動しました
+
         document.getElementById('btn-stats').onclick=()=>{ updateTexts(); showModal('modal-stats'); renderChart(); };
         document.getElementById('close-stats').onclick=()=>showModal('modal-menu');
         document.getElementById('btn-play-demo').onclick=toggleDemo;
@@ -717,8 +899,21 @@
         };
         document.getElementById('btn-cancel-brief').onclick=()=>{ if(isDemo) stopDemo(); renderMenu(); };
         document.getElementById('btn-reset-data').onclick=resetSave;
+        
+        // キーボード操作
         document.addEventListener('keydown', e=>{ if(e.key==='x'||e.key==='ArrowUp') handleInput(1); if(e.key==='z'||e.key==='ArrowDown') handleInput(-1); });
-        document.addEventListener('touchstart', e=>{ if(e.target.tagName==='CANVAS'){ e.preventDefault(); handleInput(e.touches[0].clientY<window.innerHeight/2?1:-1); } }, {passive:false});
+        
+        // ★ 整理済み: タッチイベント（重複削除し、これ1つのみにします）
+        document.addEventListener('touchstart', e=>{ 
+            if(isCalibrating && e.target.closest('#modal-calibration')) {
+                e.preventDefault();
+                handleCalibrationTap();
+            }
+            else if(e.target.tagName==='CANVAS'){ 
+                e.preventDefault(); 
+                handleInput(e.touches[0].clientY<window.innerHeight/2?1:-1); 
+            } 
+        }, {passive:false});
 
         function renderChart() {
             const c=document.getElementById('statsChart').getContext('2d');
@@ -731,6 +926,13 @@
                 options:{ responsive:true, maintainAspectRatio:false, scales:{ x:{display:false}, y:{ suggestedMin:-50, suggestedMax:50, grid:{color:'#333'} } }, plugins:{legend:{display:false}} }
             });
         }
+        
+        // 初回起動チェック
+        if(!localStorage.getItem(OFFSET_KEY)) {
+            showWelcome();
+        }
+
+        // 自動実行ロジックは削除済み（setLang内で判定するため不要）
     </script>
 </body>
 </html>

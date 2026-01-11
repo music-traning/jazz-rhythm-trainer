@@ -825,15 +825,23 @@
             }
         }
 
+        // --- 8. UI CONTROLLERS & CALIBRATION (Partial: renderMenu) ---
+
+        // ✅ renderMenu() の最後にヘッダーボタンイベントを統合
         function renderMenu() {
             updateTexts();
-            const list = document.getElementById('lesson-list'); list.innerHTML = "";
+            const list = document.getElementById('lesson-list'); 
+            list.innerHTML = "";
             showModal('modal-menu');
+            
             let lp = 0;
             LESSON_DATA.forEach((l, i) => {
                 if(l.p !== lp) {
-                    const h = document.createElement('div'); h.className = 'phase-header';
-                    h.innerText = TEXT[lang].phases[l.p-1]; list.appendChild(h); lp = l.p;
+                    const h = document.createElement('div'); 
+                    h.className = 'phase-header';
+                    h.innerText = TEXT[lang].phases[l.p-1]; 
+                    list.appendChild(h); 
+                    lp = l.p;
                 }
                 const pass = progress.passed.includes(l.id);
                 const lock = (i>0 && !progress.passed.includes(LESSON_DATA[i-1].id));
@@ -853,86 +861,153 @@
                 list.appendChild(d);
             });
 
-            // ★ 追加: メニュー表示のタイミングでキャリブレーションボタンのイベントを登録
-            const calibBtn = document.getElementById('btn-calib');
-            if(calibBtn) calibBtn.onclick = startCalibration;
-        }
-        function toggleDemo() {
-            if(isPlaying && isDemo) stopDemo();
-            else {
-                initAudio();
-                document.getElementById('btn-play-demo').innerHTML = TEXT[lang].stopDemo;
-                document.getElementById('btn-play-demo').classList.add('playing');
-                isDemo=true; isPlaying=true; notes=[]; noteIndex=0; nextNoteTime=audioCtx.currentTime+0.5;
-                draw(); schedule();
+            // ✅ メニュー表示後にヘッダーボタンを登録
+            // これにより、画面遷移のたびに確実にイベントが再バインドされます
+            if(document.getElementById('btn-calib')) {
+                document.getElementById('btn-calib').onclick = () => startCalibration();
             }
-        }
-        function stopDemo() {
-            isPlaying=false; isDemo=false;
-            document.getElementById('btn-play-demo').innerHTML = TEXT[lang].demo;
-            document.getElementById('btn-play-demo').classList.remove('playing');
-            cancelAnimationFrame(animationId); ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(document.getElementById('btn-help')) {
+                document.getElementById('btn-help').onclick = () => showModal('modal-help');
+            }
+            if(document.getElementById('btn-stats')) {
+                document.getElementById('btn-stats').onclick = () => {
+                    updateTexts();
+                    showModal('modal-stats');
+                    renderChart();
+                };
+            }
         }
 
         // --- 9. STARTUP ---
         loadSave();
-        document.getElementById('btn-help').onclick=()=>showModal('modal-help');
-        document.getElementById('close-help').onclick=()=>showModal('modal-menu');
-        
-        // ★ 削除: ここにあった btn-calib の登録は renderMenu 内へ移動しました
 
-        document.getElementById('btn-stats').onclick=()=>{ updateTexts(); showModal('modal-stats'); renderChart(); };
-        document.getElementById('close-stats').onclick=()=>showModal('modal-menu');
-        document.getElementById('btn-play-demo').onclick=toggleDemo;
-        document.getElementById('btn-start-session').onclick=()=>{
-            if(isDemo) stopDemo(); initAudio(); hideModals(); document.body.classList.add('playing');
-            const ce=document.getElementById('countdown-text');
-            const beat=60/currentLesson.bpm;
-            document.getElementById('hud-status').innerText=`LESSON ${currentLesson.id}`;
-            notes=[]; hitHistory=[]; noteIndex=0; draw();
-            let c=4;
-            function tick(){
-                if(c>0) { ce.innerText=c; ce.className='count-anim'; playSound('count',audioCtx.currentTime); setTimeout(()=>ce.className='',beat*900); setTimeout(tick,beat*1000); c--; }
-                else { ce.innerText="GO!"; ce.className='count-anim'; playSound('kick',audioCtx.currentTime); setTimeout(()=>{ ce.innerText=""; isPlaying=true; nextNoteTime=audioCtx.currentTime; schedule(); },beat*1000); }
+        // ✅ Close ボタンはメニュー表示に関係なく登録できるため、ここで一度だけ定義
+        document.getElementById('close-help').onclick = () => showModal('modal-menu');
+        document.getElementById('close-stats').onclick = () => showModal('modal-menu');
+
+        // メイン機能のボタンイベント登録
+        document.getElementById('btn-play-demo').onclick = toggleDemo;
+        document.getElementById('btn-start-session').onclick = () => {
+            if(isDemo) stopDemo(); 
+            initAudio(); 
+            hideModals(); 
+            document.body.classList.add('playing');
+            
+            const ce = document.getElementById('countdown-text');
+            const beat = 60 / currentLesson.bpm;
+            
+            document.getElementById('hud-status').innerText = `LESSON ${currentLesson.id}`;
+            notes = []; 
+            hitHistory = []; 
+            noteIndex = 0; 
+            draw();
+            
+            let c = 4;
+            function tick() {
+                if(c > 0) { 
+                    ce.innerText = c; 
+                    ce.className = 'count-anim'; 
+                    playSound('count', audioCtx.currentTime); 
+                    setTimeout(() => ce.className = '', beat * 900); 
+                    setTimeout(tick, beat * 1000); 
+                    c--;
+                } else { 
+                    ce.innerText = "GO!"; 
+                    ce.className = 'count-anim'; 
+                    playSound('kick', audioCtx.currentTime); 
+                    setTimeout(() => { 
+                        ce.innerText = ""; 
+                        isPlaying = true; 
+                        nextNoteTime = audioCtx.currentTime; 
+                        schedule(); 
+                    }, beat * 1000);
+                }
             }
             tick();
         };
-        document.getElementById('btn-cancel-brief').onclick=()=>{ if(isDemo) stopDemo(); renderMenu(); };
-        document.getElementById('btn-reset-data').onclick=resetSave;
-        
+
+        document.getElementById('btn-cancel-brief').onclick = () => { 
+            if(isDemo) stopDemo(); 
+            renderMenu(); 
+        };
+
+        document.getElementById('btn-reset-data').onclick = resetSave;
+
         // キーボード操作
-        document.addEventListener('keydown', e=>{ if(e.key==='x'||e.key==='ArrowUp') handleInput(1); if(e.key==='z'||e.key==='ArrowDown') handleInput(-1); });
-        
-        // ★ 整理済み: タッチイベント（重複削除し、これ1つのみにします）
-        document.addEventListener('touchstart', e=>{ 
+        document.addEventListener('keydown', e => { 
+            if(e.key === 'x' || e.key === 'ArrowUp') handleInput(1); 
+            if(e.key === 'z' || e.key === 'ArrowDown') handleInput(-1); 
+        });
+
+        // タッチ操作（重複を削除し、この1つに統合）
+        document.addEventListener('touchstart', e => { 
             if(isCalibrating && e.target.closest('#modal-calibration')) {
                 e.preventDefault();
                 handleCalibrationTap();
             }
-            else if(e.target.tagName==='CANVAS'){ 
+            else if(e.target.tagName === 'CANVAS'){ 
                 e.preventDefault(); 
-                handleInput(e.touches[0].clientY<window.innerHeight/2?1:-1); 
+                handleInput(e.touches[0].clientY < window.innerHeight / 2 ? 1 : -1); 
             } 
-        }, {passive:false});
+        }, {passive: false});
 
+        // 初回起動チェック
+        // 言語設定がまだ行われていない状態ではタイトル画面のまま待機
+        // 言語ボタンが押されたとき(setLang)に renderMenu または showWelcome が走るため
+        // ここでの自動呼び出しは「既にオフセット設定がある場合のみ」メニューを描画してもよいが
+        // setLang() 内のロジックに任せる形であれば、下記判定だけで十分です。
+        if(!localStorage.getItem(OFFSET_KEY)) {
+             // まだ設定がない場合、タイトル画面の裏でWelcomeが出る準備だけしておく（表示はsetLangで制御）
+             // ※ここでは特に何もしなくてOK、ユーザー操作待ち
+        }
+
+        // --- 10. CHART RENDERING ---
         function renderChart() {
-            const c=document.getElementById('statsChart').getContext('2d');
+            // キャンバス要素を取得
+            const canvas = document.getElementById('statsChart');
+            if (!canvas) return; // エラー回避
+            
+            const c = canvas.getContext('2d');
+
+            // 既存のチャートがあれば破棄（二重描画防止）
             if(chartInstance) chartInstance.destroy();
+
+            // データの準備
             const l=[], d=[];
-            LESSON_DATA.forEach(x=>{ if(progress.passed.includes(x.id)&&progress.stats[x.id]){ l.push(x.id); d.push(progress.stats[x.id].bias); } });
+            LESSON_DATA.forEach(x=>{ 
+                if(progress.passed.includes(x.id) && progress.stats[x.id]){ 
+                    l.push(x.id); 
+                    d.push(progress.stats[x.id].bias); 
+                } 
+            });
+
+            // データが無い場合のダミー表示
             if(l.length===0){ l.push(0); d.push(0); }
+
+            // チャート生成
             chartInstance = new Chart(c, {
-                type:'line', data:{ labels:l, datasets:[{ label:'Bias(ms)', data:d, borderColor:'#4cc9f0', tension:0.3, pointRadius:3 }] },
-                options:{ responsive:true, maintainAspectRatio:false, scales:{ x:{display:false}, y:{ suggestedMin:-50, suggestedMax:50, grid:{color:'#333'} } }, plugins:{legend:{display:false}} }
+                type:'line', 
+                data:{ 
+                    labels:l, 
+                    datasets:[{ 
+                        label:'Bias(ms)', 
+                        data:d, 
+                        borderColor:'#4cc9f0', 
+                        tension:0.3, 
+                        pointRadius:3 
+                    }] 
+                },
+                options:{ 
+                    responsive:true, 
+                    maintainAspectRatio:false, 
+                    scales:{ 
+                        x:{display:false}, 
+                        y:{ suggestedMin:-50, suggestedMax:50, grid:{color:'#333'} } 
+                    }, 
+                    plugins:{legend:{display:false}} 
+                }
             });
         }
-        
-        // 初回起動チェック
-        if(!localStorage.getItem(OFFSET_KEY)) {
-            showWelcome();
-        }
-
-        // 自動実行ロジックは削除済み（setLang内で判定するため不要）
     </script>
 </body>
 </html>

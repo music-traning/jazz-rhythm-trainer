@@ -43,12 +43,23 @@
         #app-footer a { color: #777; text-decoration: none; pointer-events: auto; }
 
         /* MODALS */
+        /* MODALS */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.92); backdrop-filter: blur(8px);
-            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            
+            /* ★修正1: ここを100に戻す (ヘッダー110より下にする) */
+            z-index: 100; 
+            
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
             display: flex; justify-content: center; align-items: center;
         }
+
+        /* ★修正2: キャリブレーション画面だけは、ヘッダーより上(300)にする */
+        #modal-calibration {
+            z-index: 300 !important;
+        }
+
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
 
         .modal-box {
@@ -203,9 +214,14 @@
     <div id="modal-calibration" class="modal-overlay">
         <div class="modal-box" style="text-align:center;">
             <h2 style="text-align:center;">CALIBRATION</h2>
-            <p style="text-align:center; font-size:0.8rem; color:#aaa;">
-                リズムに合わせて画面をタップしてください。<br>Tap to the rhythm.
-            </p>
+           <p style="text-align:center; font-size:0.85rem; color:#ccc; line-height:1.8;">
+    リズムに合わせて<br>
+    <span style="color:var(--accent);">タップ / クリック</span> または <span style="color:var(--accent);">キー(X/Z)</span><br>
+    を叩いてください。
+</p>
+<p style="text-align:center; font-size:0.75rem; color:#777; margin-top:-10px; margin-bottom:20px;">
+    Tap / Click screen OR Press keys<br>to the rhythm.
+</p>
             <div id="calib-visual">TAP</div>
             <div style="margin:20px 0;">
                 <div style="font-size:0.8rem; color:#888;">OFFSET (LATENCY)</div>
@@ -706,6 +722,44 @@
             showResult(grade, Math.round(mean), Math.round(sd), msg);
         }
 
+        // --- 【追加コード】ここから ---
+        function toggleDemo() {
+            if(isDemo) {
+                stopDemo();
+            } else {
+                initAudio();
+                isDemo = true;
+                isPlaying = true;
+                notes = [];
+                noteIndex = 0;
+                nextNoteTime = audioCtx.currentTime;
+                
+                // ボタンの見た目を変える
+                const btn = document.getElementById('btn-play-demo');
+                if(btn) {
+                    btn.innerHTML = TEXT[lang].stopDemo;
+                    btn.classList.add('playing');
+                }
+                
+                schedule();
+                draw();
+            }
+        }
+
+        function stopDemo() {
+            isDemo = false;
+            isPlaying = false;
+            document.body.classList.remove('playing');
+            
+            // ボタンを元に戻す
+            const btn = document.getElementById('btn-play-demo');
+            if(btn) {
+                btn.innerHTML = TEXT[lang].demo;
+                btn.classList.remove('playing');
+            }
+        }
+        // --- 【追加コード】ここまで ---
+
         // --- 8. UI CONTROLLERS & CALIBRATION ---
         function showModal(id) { document.querySelectorAll('.modal-overlay').forEach(e=>e.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function hideModals() { document.querySelectorAll('.modal-overlay').forEach(e=>e.classList.remove('active')); }
@@ -933,23 +987,6 @@
 
         document.getElementById('btn-reset-data').onclick = resetSave;
 
-        // キーボード操作
-        document.addEventListener('keydown', e => { 
-            if(e.key === 'x' || e.key === 'ArrowUp') handleInput(1); 
-            if(e.key === 'z' || e.key === 'ArrowDown') handleInput(-1); 
-        });
-
-        // タッチ操作（重複を削除し、この1つに統合）
-        document.addEventListener('touchstart', e => { 
-            if(isCalibrating && e.target.closest('#modal-calibration')) {
-                e.preventDefault();
-                handleCalibrationTap();
-            }
-            else if(e.target.tagName === 'CANVAS'){ 
-                e.preventDefault(); 
-                handleInput(e.touches[0].clientY < window.innerHeight / 2 ? 1 : -1); 
-            } 
-        }, {passive: false});
 
         // 初回起動チェック
         // 言語設定がまだ行われていない状態ではタイトル画面のまま待機
@@ -1007,6 +1044,150 @@
                     plugins:{legend:{display:false}} 
                 }
             });
+        }
+
+      // --- 【最終修正版】入力イベント統合エリア (ここから下を全部書き換え) ---
+
+        // ★1. フィードバック音（押した瞬間に必ず鳴らす）
+       // --- 【完全統合版】入力イベント処理 (これ以外は削除してください) ---
+
+        // 1. フィードバック音
+        function triggerInputFeedback(now) {
+            if(!audioCtx) return;
+            const osc = audioCtx.createOscillator(); 
+            const g = audioCtx.createGain();
+            osc.frequency.value = 1200; 
+            g.gain.setValueAtTime(0.1, now); 
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(g); 
+            g.connect(audioCtx.destination); 
+            osc.start(now); 
+            osc.stop(now + 0.05);
+        }
+
+        // 2. キーボード操作
+        document.addEventListener('keydown', e => { 
+            // A. キャリブレーション中
+            if(isCalibrating) {
+                // スペース、エンター、X、Z、矢印などに対応
+                if(e.code === 'Space' || e.code === 'Enter' || e.key === 'x' || e.key === 'z' || e.key.includes('Arrow')) {
+                    e.preventDefault();
+                    triggerInputFeedback(audioCtx.currentTime);
+                    handleCalibrationTap();
+                }
+                return;
+            }
+
+            // B. 通常プレイ中
+            if(e.key === 'x' || e.key === 'ArrowUp') handleInput(1); 
+            if(e.key === 'z' || e.key === 'ArrowDown') handleInput(-1); 
+        });
+
+        // 3. マウス＆タッチ操作 (これ1つで両方対応)
+        document.addEventListener('pointerdown', e => {
+            
+            // A. キャリブレーション中
+            if(isCalibrating) {
+                // ★重要: ボタン（またはその中の文字）を押した場合は、リズム判定をしない
+                if(e.target.closest('button')) return;
+
+                // それ以外（背景や文字など）を押した場合のみ反応する
+                // (z-index対策として、モーダル自体またはその内部の要素なら反応させる)
+                if(e.target.closest('#modal-calibration') || e.target.closest('.modal-overlay')) {
+                    e.preventDefault();
+                    triggerInputFeedback(audioCtx.currentTime); 
+                    handleCalibrationTap();
+                }
+                return;
+            }
+            
+            // B. ゲームプレイ中
+            if(isPlaying && !isDemo && e.target.tagName === 'CANVAS'){ 
+                e.preventDefault(); 
+                handleInput(e.clientY < window.innerHeight / 2 ? 1 : -1); 
+            } 
+        }, {passive: false});
+
+        // 4. キャリブレーション計算ロジック
+        function handleCalibrationTap() {
+            if(!isCalibrating) return;
+            const now = audioCtx.currentTime;
+            const interval = 60 / CALIB_BPM;
+            
+            const lastBeat = calibNextTime - interval;
+            const nextBeat = calibNextTime;
+            const distLast = Math.abs(now - lastBeat);
+            const distNext = Math.abs(now - nextBeat);
+            let targetTime = (distLast < distNext) ? lastBeat : nextBeat;
+            
+            let rawDiff = now - targetTime;
+
+            // 制限なしで値を更新（すぐに反応させるため）
+            userOffset = (userOffset * (1 - CALIB_ALPHA)) + (rawDiff * CALIB_ALPHA);
+            
+            const valEl = document.getElementById('calib-offset-val');
+            if(valEl) valEl.innerText = Math.round(userOffset * 1000);
+            
+            const visEl = document.getElementById('calib-visual');
+            if(visEl) {
+                visEl.classList.add('flash');
+                setTimeout(()=>visEl.classList.remove('flash'), 50);
+            }
+        }
+
+        // ★2. キーボード操作（スペース・エンター・矢印・X・Z 全対応）
+        document.addEventListener('keydown', e => { 
+            // A. キャリブレーション中
+            if(isCalibrating) {
+                // スペース、エンター、X、Z、矢印など、よく使うキーを許可
+                if(e.code === 'Space' || e.code === 'Enter' || e.key === 'x' || e.key === 'z' || e.key.includes('Arrow')) {
+                    e.preventDefault();
+                    triggerInputFeedback(audioCtx.currentTime); // 即座に音を鳴らす
+                    handleCalibrationTap();
+                }
+                return;
+            }
+
+            // B. 通常プレイ中
+            if(e.key === 'x' || e.key === 'ArrowUp') handleInput(1); 
+            if(e.key === 'z' || e.key === 'ArrowDown') handleInput(-1); 
+        });
+
+        // ★3. マウス＆タッチ操作（pointerdownを使えば両対応できる）
+        // 2. マウス＆タッチ操作 (Pointer Eventsで一本化)
+
+        // ★4. キャリブレーション計算ロジック（判定緩和版）
+        // 既存の handleCalibrationTap をこれで上書きします
+        function handleCalibrationTap() {
+            if(!isCalibrating) return;
+            const now = audioCtx.currentTime;
+            const interval = 60 / CALIB_BPM;
+            
+            // 一番近い拍を探す
+            const lastBeat = calibNextTime - interval;
+            const nextBeat = calibNextTime;
+            const distLast = Math.abs(now - lastBeat);
+            const distNext = Math.abs(now - nextBeat);
+            let targetTime = (distLast < distNext) ? lastBeat : nextBeat;
+            
+            let rawDiff = now - targetTime;
+
+            // ★重要: ここにあった「0.3秒ズレたら無視」のコードを削除しました。
+            // これで適当に連打しても反応するようになります。
+
+            // 値を更新
+            userOffset = (userOffset * (1 - CALIB_ALPHA)) + (rawDiff * CALIB_ALPHA);
+            
+            // 画面の数字を更新
+            const valEl = document.getElementById('calib-offset-val');
+            if(valEl) valEl.innerText = Math.round(userOffset * 1000);
+            
+            // ビジュアルエフェクト
+            const visEl = document.getElementById('calib-visual');
+            if(visEl) {
+                visEl.classList.add('flash');
+                setTimeout(()=>visEl.classList.remove('flash'), 50);
+            }
         }
     </script>
 </body>

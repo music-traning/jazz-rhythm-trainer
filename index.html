@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JAZZ RHYTHM TRAINER v5.4 (First Setup)</title>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a20">
+<link rel="apple-touch-icon" href="icon-192.png"> <script>
+  // Service Workerの登録
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('SW Registered'))
+        .catch(err => console.log('SW Error:', err));
+    });
+  }
+</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
@@ -288,14 +300,23 @@
    <script>
         // --- 1. LANGUAGE & TEXT ---
         let lang = 'ja';
+        
+        // ★この TEXT オブジェクト全体をコピーして置き換えてください
         const TEXT = {
             ja: {
-                menuTitle: "カリキュラム (50段階)",
-                menuDesc: "Lv.1-20は基礎（Straight）、Lv.21からジャズ（Swing）です。焦らず進みましょう。",
-                reset: "🗑 セーブデータを消去",
-                demo: "🔊 お手本 (DEMO)", stopDemo: "⏹ 停止",
-                start: "スタート", cancel: "もどる", next: "次のレッスン", retry: "もう一度", menu: "メニューへ",
-                statsTitle: "リズム分析",
+                menuTitle: "カリキュラム",
+                menuDesc: "レッスンを選択してください。",
+                phases: ["P1: 基礎 (Basics)", "P2: グルーヴ (Groove)", "P3: スイング (Swing)", "P4: 高度技巧 (Advanced)", "P5: 神の領域 (God Tier)"],
+                reset: "🗑 データ初期化",
+                resetConfirm: "本当にデータをリセットしますか？",
+                demo: "🔊 お手本を聞く",
+                stopDemo: "■ お手本を停止",
+                start: "スタート",
+                cancel: "戻る",
+                statsTitle: "統計データ",
+                retry: "もう一度",
+                next: "次へ",
+                menu: "メニューへ",
                 helpTitle: "操作説明",
                 helpContent: `
                     <p><strong>★ 基本操作</strong><br>
@@ -306,25 +327,33 @@
                     <p><strong>2. Gap (無音)</strong><br>Lv.30以降、ガイド音が消える「Gap」が登場します。</p>
                     <p><strong>3. 構成</strong><br>Lv.1-20: Straight (均等)<br>Lv.21-50: Swing (3連符)</p>
                     <hr style="border-color:#333;">
-                    <p><strong>4. 遅延調整 (Calibration)</strong><br>
+                    <p><strong>★ アプリとして使う (推奨)</strong><br>
+                    ホーム画面に追加すると、<strong>全画面・オフライン</strong>で快適にプレイできます。</p>
+                    <div style="font-size:0.85rem; margin-top:5px;">
+                        <span style="color:#4cc9f0;">● iOS (Safari)</span>:<br>
+                        画面下の「共有」ボタン <span style="border:1px solid #555; padding:0 4px;">↑</span> ＞ [ホーム画面に追加]<br>
+                        <span style="color:#f72585; margin-top:4px; display:inline-block;">● Android (Chrome)</span>:<br>
+                        メニューボタン <span style="border:1px solid #555; padding:0 4px;">︙</span> ＞ [アプリをインストール]
+                    </div>
+                    <hr style="border-color:#333;">
+                    <p><strong>遅延調整 (Calibration)</strong><br>
                     音がズレて感じる場合は、画面上部の [🔧 CALIB] ボタンからいつでも調整可能です。</p>
-                `,
-                resetConfirm: "記録を全消去しますか？",
-                phases: [
-                    "PHASE 1: 基礎 (Straight Basics)", 
-                    "PHASE 2: グルーヴ (Straight Groove)", 
-                    "PHASE 3: スイング (Swing Entry)", 
-                    "PHASE 4: テクニック (Advanced)", 
-                    "PHASE 5: 神の領域 (GOD TIER)"
-                ]
+                `
             },
             en: {
-                menuTitle: "CURRICULUM (50 STEPS)",
-                menuDesc: "Lv.1-20 Straight. Lv.21+ Swing. Take your time.",
-                reset: "🗑 RESET SAVE DATA",
-                demo: "🔊 PLAY DEMO", stopDemo: "⏹ STOP",
-                start: "START", cancel: "BACK", next: "NEXT LESSON", retry: "RETRY", menu: "MENU",
+                menuTitle: "CURRICULUM",
+                menuDesc: "Select a lesson to start.",
+                phases: ["P1: Basics", "P2: Groove", "P3: Swing Entry", "P4: Advanced", "P5: God Tier"],
+                reset: "🗑 RESET DATA",
+                resetConfirm: "Are you sure you want to reset all progress?",
+                demo: "🔊 PLAY DEMO",
+                stopDemo: "■ STOP DEMO",
+                start: "START SESSION",
+                cancel: "BACK",
                 statsTitle: "STATISTICS",
+                retry: "RETRY",
+                next: "NEXT LEVEL",
+                menu: "BACK TO MENU",
                 helpTitle: "MANUAL",
                 helpContent: `
                     <p><strong>★ CONTROLS</strong><br>
@@ -333,17 +362,18 @@
                     <hr style="border-color:#333;">
                     <p><strong>Structure</strong><br>Lv.1-20: Straight (Even)<br>Lv.21-50: Swing (Triplet)</p>
                     <hr style="border-color:#333;">
+                    <p><strong>★ INSTALL APP (Recommended)</strong><br>
+                    Add to Home Screen for <strong>Full Screen & Offline</strong> play.</p>
+                    <div style="font-size:0.85rem; margin-top:5px;">
+                        <span style="color:#4cc9f0;">● iOS (Safari)</span>:<br>
+                        Tap [Share] button <span style="border:1px solid #555; padding:0 4px;">↑</span> > [Add to Home Screen]<br>
+                        <span style="color:#f72585; margin-top:4px; display:inline-block;">● Android (Chrome)</span>:<br>
+                        Tap Menu <span style="border:1px solid #555; padding:0 4px;">︙</span> > [Install App]
+                    </div>
+                    <hr style="border-color:#333;">
                     <p><strong>Calibration</strong><br>
                     Audio lag? Tap the [🔧 CALIB] button at the top to adjust latency anytime.</p>
-                `,
-                resetConfirm: "Delete all progress?",
-                phases: [
-                    "PHASE 1: BASICS (STRAIGHT)", 
-                    "PHASE 2: GROOVE (STRAIGHT)", 
-                    "PHASE 3: SWING ENTRY", 
-                    "PHASE 4: ADVANCED", 
-                    "PHASE 5: GOD TIER"
-                ]
+                `
             }
         };
 
